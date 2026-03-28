@@ -1,0 +1,24 @@
+@model ITBS_Classroom.Domain.Entities.MessageThread
+@{
+    ViewData["Title"] = "Thread";
+    var sendModel = ViewBag.SendModel as ITBS_Classroom.Models.Messages.SendMessageViewModel;
+}
+
+<h2>Thread discussion</h2>
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body" style="max-height:400px; overflow:auto;">
+        @foreach (var m in Model.Messages)
+        {
+            <div class="mb-2">
+                <div class="small text-muted">@m.Sender.FirstName @m.Sender.LastName - @m.SentAtUtc</div>
+                <div>@m.Content</div>
+            </div>
+        }
+    </div>
+</div>
+<form asp-action="Send" method="post" class="d-flex gap-2">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="ThreadId" value="@sendModel?.ThreadId" />
+    <input type="text" name="Content" class="form-control" placeholder="Message..." required />
+    <button class="btn btn-dark" type="submit">Envoyer</button>
+</form>

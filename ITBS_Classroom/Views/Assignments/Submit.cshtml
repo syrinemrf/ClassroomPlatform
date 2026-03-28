@@ -1,0 +1,26 @@
+@model ITBS_Classroom.Models.Submissions.SubmissionCreateViewModel
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = isFr ? "Soumission" : "Submission";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h4>@(isFr ? "Soumettre le devoir" : "Submit assignment")</h4>
+                <form method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="All" class="text-danger small"></div>
+                    <input asp-for="AssignmentId" type="hidden" />
+                    <input asp-for="File" type="file" class="form-control mb-3" />
+                    <button class="btn btn-dark w-100" type="submit">Soumettre</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,11 @@
+﻿.navbar-brand {
+  letter-spacing: 0.2px;
+}
+
+.nav-link {
+  opacity: 0.95;
+}
+
+.nav-link:hover {
+  opacity: 1;
+}

@@ -1,0 +1,11 @@
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = isFr ? "Espace étudiant" : "Student area";
+}
+<div class="card app-card border-0 shadow-sm">
+    <div class="card-body">
+        <h3>@(isFr ? "Bienvenue étudiant" : "Welcome student")</h3>
+        <p>@(isFr ? "Consultez vos cours, devoirs, notes et notifications." : "View your courses, assignments, grades, and notifications.")</p>
+    </div>
+</div>

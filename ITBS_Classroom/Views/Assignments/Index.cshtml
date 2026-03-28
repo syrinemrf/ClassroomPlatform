@@ -1,0 +1,64 @@
+@model IEnumerable<ITBS_Classroom.Domain.Entities.Assignment>
+@using ITBS_Classroom.Domain.Enums
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = isFr ? "Devoirs" : "Assignments";
+    var groups = ViewBag.Groups as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+    var statuses = ViewBag.SubmissionStatuses as Dictionary<Guid, SubmissionStatus> ?? new Dictionary<Guid, SubmissionStatus>();
+}
+
+<h2 class="mb-3">@(isFr ? "Devoirs" : "Assignments")</h2>
+
+@if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+{
+    <div class="card app-card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5>@(isFr ? "Nouveau devoir" : "New assignment")</h5>
+            <form asp-action="Create" method="post" enctype="multipart/form-data" class="row g-2">
+                @Html.AntiForgeryToken()
+                <div class="col-md-6"><input name="Title" class="form-control" placeholder="@(isFr ? "Titre" : "Title")" required /></div>
+                <div class="col-md-6"><input name="DeadlineUtc" type="datetime-local" class="form-control" required /></div>
+                <div class="col-md-8"><textarea name="Description" class="form-control" rows="2" placeholder="@(isFr ? "Description" : "Description")" required></textarea></div>
+                <div class="col-md-4"><select name="GroupId" asp-items="groups" class="form-select" required></select></div>
+                <div class="col-md-8"><input type="file" name="Attachment" class="form-control" /></div>
+                <div class="col-md-4"><button class="btn btn-primary w-100" type="submit">@(isFr ? "Créer" : "Create")</button></div>
+            </form>
+        </div>
+    </div>
+}
+
+<div class="row g-3">
+@foreach (var assignment in Model)
+{
+    <div class="col-md-6 col-xl-4">
+        <div class="card app-card border-0 shadow-sm h-100">
+            <div class="card-body d-flex flex-column">
+                <h5>@assignment.Title</h5>
+                <p class="small text-muted">@assignment.Description</p>
+                <p class="small mb-1">Deadline UTC: @assignment.DeadlineUtc</p>
+                <p class="small">@(isFr ? "Groupe" : "Group"): @assignment.Group.Name</p>
+
+                @if (User.IsInRole("Student"))
+                {
+                    var status = statuses.ContainsKey(assignment.Id) ? statuses[assignment.Id] : SubmissionStatus.NotSubmitted;
+                    <span class="badge bg-secondary mb-2">@status</span>
+                    <a class="btn btn-outline-primary btn-sm" asp-action="Submit" asp-route-assignmentId="@assignment.Id">@(isFr ? "Soumettre" : "Submit")</a>
+                }
+
+                @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+                {
+                    <div class="mt-auto d-flex gap-2">
+                        <a class="btn btn-outline-primary btn-sm" asp-controller="Submissions" asp-action="ByAssignment" asp-route-assignmentId="@assignment.Id">@(isFr ? "Soumissions" : "Submissions")</a>
+                        <form asp-action="Delete" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@assignment.Id" />
+                            <button class="btn btn-outline-danger btn-sm" type="submit">@(isFr ? "Supprimer" : "Delete")</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+</div>

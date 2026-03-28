@@ -1,0 +1,15 @@
+﻿@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = "ITBS Courses";
+}
+
+<section class="hero-panel p-5 rounded-4 shadow-sm">
+    <div class="py-2">
+        <h1 class="display-6 fw-bold mb-3">ITBS Courses</h1>
+        <p class="lead mb-4">@(isFr
+            ? "Gérez vos cours, devoirs, soumissions, notes, messages et planning dans une interface claire et professionnelle."
+            : "Manage courses, assignments, submissions, grades, messaging, and planning in a clean, professional experience.")</p>
+        <a class="btn btn-primary btn-lg" asp-controller="Account" asp-action="Login">@(isFr ? "Connexion" : "Login")</a>
+    </div>
+</section>

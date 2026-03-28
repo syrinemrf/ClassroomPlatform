@@ -1,0 +1,20 @@
+@model IEnumerable<ITBS_Classroom.Domain.Entities.MessageThread>
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = isFr ? "Messages" : "Messages";
+}
+
+<h2>@(isFr ? "Messagerie" : "Messaging")</h2>
+<div class="list-group shadow-sm app-card p-2">
+@foreach (var t in Model)
+{
+    <a class="list-group-item list-group-item-action" asp-action="Thread" asp-route-id="@t.Id">
+        <div class="d-flex justify-content-between">
+            <strong>Thread @t.ThreadType</strong>
+            <small>@t.CreatedAtUtc</small>
+        </div>
+        <small>@t.Messages.FirstOrDefault()?.Content</small>
+    </a>
+}
+</div>

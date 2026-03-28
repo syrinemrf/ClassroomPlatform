@@ -1,0 +1,42 @@
+# Build
+bin/
+obj/
+out/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs & diagnostics
+*.log
+logs/
+
+# NuGet
+*.nupkg
+packages/
+
+# EF local DB artifacts
+*.mdf
+*.ldf
+
+# Node / frontend
+node_modules/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+
+# User uploads / generated files
+ITBS_Classroom/wwwroot/uploads/
+
+# OS
+.DS_Store
+Thumbs.db

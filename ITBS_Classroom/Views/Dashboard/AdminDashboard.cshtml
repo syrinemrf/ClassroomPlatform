@@ -1,0 +1,19 @@
+@model ITBS_Classroom.Models.Admin.AdminDashboardViewModel
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = "Admin";
+}
+
+<h2 class="mb-4">@(isFr ? "Tableau de bord Admin" : "Admin dashboard")</h2>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card app-card border-0 shadow-sm"><div class="card-body"><h6>@(isFr ? "Utilisateurs" : "Users")</h6><h3>@Model.TotalUsers</h3></div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card app-card border-0 shadow-sm"><div class="card-body"><h6>@(isFr ? "Groupes" : "Groups")</h6><h3>@Model.TotalGroups</h3></div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card app-card border-0 shadow-sm"><div class="card-body"><h6>@(isFr ? "Cours" : "Courses")</h6><h3>@Model.TotalCourses</h3></div></div>
+    </div>
+</div>

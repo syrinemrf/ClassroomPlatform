@@ -1,0 +1,52 @@
+@model ITBS_Classroom.Models.Admin.CreateGroupViewModel
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = isFr ? "Gestion groupes" : "Group management";
+    var groups = ViewBag.Groups as IEnumerable<ITBS_Classroom.Domain.Entities.ClassGroup> ?? Enumerable.Empty<ITBS_Classroom.Domain.Entities.ClassGroup>();
+    var teachers = ViewBag.Teachers as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+    var students = ViewBag.Students as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card app-card border-0 shadow-sm"><div class="card-body">
+            <h5>@(isFr ? "Créer un groupe" : "Create group")</h5>
+            <form asp-action="CreateGroup" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="Name" class="form-control mb-2" placeholder="@(isFr ? "Nom du groupe" : "Group name")" />
+                <textarea asp-for="Description" class="form-control mb-2" rows="3" placeholder="@(isFr ? "Description" : "Description")"></textarea>
+                <select asp-for="TeacherId" asp-items="teachers" class="form-select mb-3">
+                    <option value="">@(isFr ? "-- Enseignant --" : "-- Teacher --")</option>
+                </select>
+                <button class="btn btn-primary w-100" type="submit">@(isFr ? "Créer" : "Create")</button>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        @foreach (var group in groups)
+        {
+            <div class="card app-card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6>@group.Name</h6>
+                    <p class="small text-muted mb-2">@group.Description</p>
+                    <p class="small mb-2">@(isFr ? "Enseignant" : "Teacher"): @group.Teacher?.FirstName @group.Teacher?.LastName</p>
+                    <form asp-action="AddStudentToGroup" method="post" class="row g-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="groupId" value="@group.Id" />
+                        <div class="col-md-8">
+                            <select name="studentId" class="form-select" asp-items="students"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-primary w-100" type="submit">@(isFr ? "Ajouter étudiant" : "Add student")</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

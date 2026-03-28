@@ -1,0 +1,24 @@
+@model IEnumerable<ITBS_Classroom.Domain.Entities.Submission>
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = isFr ? "Mes notes" : "My grades";
+}
+
+<h2>@(isFr ? "Mes notes" : "My grades")</h2>
+<div class="table-responsive app-card p-3 shadow-sm">
+<table class="table align-middle">
+    <thead><tr><th>Devoir</th><th>Date soumission</th><th>Note</th><th>Feedback</th></tr></thead>
+    <tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.Assignment.Title</td>
+            <td>@item.SubmittedAtUtc</td>
+            <td>@(item.Grade?.Score)</td>
+            <td>@item.Grade?.Feedback</td>
+        </tr>
+    }
+    </tbody>
+</table>
+</div>

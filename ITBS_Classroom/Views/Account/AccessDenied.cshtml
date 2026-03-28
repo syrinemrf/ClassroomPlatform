@@ -1,0 +1,7 @@
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    ViewData["Title"] = isFr ? "Accès refusé" : "Access denied";
+}
+
+<div class="alert alert-danger">@(isFr ? "Accès refusé." : "Access denied.")</div>

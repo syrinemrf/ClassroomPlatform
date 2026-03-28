@@ -1,0 +1,119 @@
+﻿<!DOCTYPE html>
+@using System.Globalization
+@{
+    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    var currentPath = Context.Request.Path + Context.Request.QueryString;
+    var path = Context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+    string ActiveClass(string prefix) => path.StartsWith(prefix) ? "active" : string.Empty;
+}
+<!DOCTYPE html>
+<html lang="@(isFr ? "fr" : "en")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ITBS Courses</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ITBS_Classroom.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg app-navbar shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-semibold" asp-controller="Dashboard" asp-action="Index">ITBS Courses</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navMenu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div id="navMenu" class="collapse navbar-collapse">
+                    <div class="me-auto"></div>
+
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <div class="d-flex align-items-center gap-1">
+                            <form asp-controller="Home" asp-action="SetLanguage" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="culture" value="fr" />
+                                <input type="hidden" name="returnUrl" value="@currentPath" />
+                                <button class="btn btn-sm @(isFr ? "btn-warning" : "btn-outline-light")" type="submit">FR</button>
+                            </form>
+                            <form asp-controller="Home" asp-action="SetLanguage" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="culture" value="en" />
+                                <input type="hidden" name="returnUrl" value="@currentPath" />
+                                <button class="btn btn-sm @(!isFr ? "btn-warning" : "btn-outline-light")" type="submit">EN</button>
+                            </form>
+                        </div>
+                        <button id="themeToggle" type="button" class="btn btn-sm btn-outline-light">@(isFr ? "Mode sombre" : "Dark mode")</button>
+
+                        @if (User.Identity?.IsAuthenticated ?? false)
+                        {
+                            @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
+                            {
+                                <a class="btn btn-sm btn-outline-light" asp-controller="Account" asp-action="Profile">@(isFr ? "Mon compte" : "My account")</a>
+                            }
+                            <a class="btn btn-sm btn-outline-light" asp-controller="Account" asp-action="ChangePassword">@(isFr ? "Mot de passe" : "Password")</a>
+                            <span class="text-white-50 small">@User.Identity?.Name</span>
+                            <form asp-controller="Account" asp-action="Logout" method="post">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-warning" type="submit">@(isFr ? "Déconnexion" : "Logout")</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a class="btn btn-sm btn-warning" asp-controller="Account" asp-action="Login">@(isFr ? "Connexion" : "Login")</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    @if (User.Identity?.IsAuthenticated ?? false)
+    {
+        <div class="app-shell">
+            <aside class="app-sidebar">
+                <div class="sidebar-title">@(isFr ? "Navigation" : "Navigation")</div>
+                <a class="sidebar-link @ActiveClass("/dashboard")" asp-controller="Dashboard" asp-action="Index">@(isFr ? "Tableau de bord" : "Dashboard")</a>
+                <a class="sidebar-link @ActiveClass("/courses")" asp-controller="Courses" asp-action="Index">@(isFr ? "Cours" : "Courses")</a>
+                <a class="sidebar-link @ActiveClass("/assignments")" asp-controller="Assignments" asp-action="Index">@(isFr ? "Devoirs" : "Assignments")</a>
+                <a class="sidebar-link @ActiveClass("/submissions")" asp-controller="Submissions" asp-action="MyGrades">@(isFr ? "Notes" : "Grades")</a>
+                <a class="sidebar-link @ActiveClass("/calendar")" asp-controller="Calendar" asp-action="Index">@(isFr ? "Calendrier" : "Calendar")</a>
+                <a class="sidebar-link @ActiveClass("/messages")" asp-controller="Messages" asp-action="Index">@(isFr ? "Messages" : "Messages")</a>
+                <a class="sidebar-link @ActiveClass("/notifications")" asp-controller="Notifications" asp-action="Index">@(isFr ? "Notifications" : "Notifications")</a>
+                @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
+                {
+                    <a class="sidebar-link @ActiveClass("/account/profile")" asp-controller="Account" asp-action="Profile">@(isFr ? "Mon compte" : "My account")</a>
+                }
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="sidebar-section">Admin</div>
+                    <a class="sidebar-link @ActiveClass("/admin/users")" asp-controller="Admin" asp-action="Users">@(isFr ? "Utilisateurs" : "Users")</a>
+                    <a class="sidebar-link @ActiveClass("/admin/groups")" asp-controller="Admin" asp-action="Groups">@(isFr ? "Groupes" : "Groups")</a>
+                }
+            </aside>
+            <div class="app-content">
+                <main role="main" class="container-fluid py-4 app-main">
+                    @RenderBody()
+                </main>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="container py-4 app-main">
+            <main role="main">
+                @RenderBody()
+            </main>
+        </div>
+    }
+
+    <footer class="border-top py-3 app-footer">
+        <div class="container-fluid small px-4">
+            &copy; 2026 ITBS Courses
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
