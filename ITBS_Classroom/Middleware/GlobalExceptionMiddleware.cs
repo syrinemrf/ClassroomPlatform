@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using System.Globalization;
 using System.Net;
+using Microsoft.AspNetCore.Http;
 
 namespace ITBS_Classroom.Middleware;
 
