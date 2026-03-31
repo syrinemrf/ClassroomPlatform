@@ -1,5 +1,4 @@
 @using ITBS_Classroom.Models
-@using ITBS_Classroom.Models.ViewModels
 @model CreateCourseViewModel
 @{
     ViewData["Title"] = "Gestion des cours";
@@ -39,8 +38,12 @@
                 </div>
                 <div class="uc-form-group">
                     <label class="uc-label">Enseignant *</label>
-                    <select asp-for="TeacherId" asp-items="teachers" class="uc-select">
+                    <select name="TeacherId" class="uc-select" required>
                         <option value="">— Choisir —</option>
+                        @foreach (var t in teachers)
+                        {
+                            <option value="@t.Value">@t.Text</option>
+                        }
                     </select>
                 </div>
             </div>
@@ -50,14 +53,14 @@
             </div>
             <div class="uc-form-group">
                 <label class="uc-label">Couleur du cours</label>
-                <div class="uc-color-chips">
+                <div class="uc-color-chips" id="colorChips">
                     @foreach (var c in colors)
                     {
                         <div class="uc-color-chip @(c == "#1a73e8" ? "selected" : "")"
-                             data-color="@c" style="background:@c"></div>
+                             data-color="@c" style="background:@c;cursor:pointer" onclick="selectColor('@c')"></div>
                     }
                 </div>
-                <input type="hidden" asp-for="ColorTheme" id="ColorTheme" value="#1a73e8" />
+                <input type="hidden" name="ColorTheme" id="ColorTheme" value="#1a73e8" />
             </div>
             <button class="uc-btn uc-btn-primary" type="submit">
                 <i class="fa fa-save"></i> Créer le cours
@@ -124,9 +127,13 @@ else
                                     @foreach (var t2 in teachers)
                                     {
                                         if (t2.Value == c.TeacherId)
-                                        { <option value="@t2.Value" selected>@t2.Text</option> }
+                                        { 
+                                            <option value="@t2.Value" selected>@t2.Text</option>
+                                        }
                                         else
-                                        { <option value="@t2.Value">@t2.Text</option> }
+                                        { 
+                                            <option value="@t2.Value">@t2.Text</option>
+                                        }
                                     }
                                 </select>
                                 <button class="uc-btn uc-btn-outline uc-btn-sm" type="submit" title="Changer d'enseignant">
@@ -175,10 +182,17 @@ else
 
 @section Scripts {
 <script>
+function selectColor(color) {
+    document.getElementById('ColorTheme').value = color;
+    document.querySelectorAll('.uc-color-chip').forEach(c => c.classList.remove('selected'));
+    event.target.classList.add('selected');
+}
+
 document.getElementById('btnNewCourse').addEventListener('click', function() {
     document.getElementById('createCoursePanel').style.display = 'block';
     this.style.display = 'none';
 });
+
 document.getElementById('btnCloseNewCourse').addEventListener('click', function() {
     document.getElementById('createCoursePanel').style.display = 'none';
     document.getElementById('btnNewCourse').style.display = 'inline-flex';

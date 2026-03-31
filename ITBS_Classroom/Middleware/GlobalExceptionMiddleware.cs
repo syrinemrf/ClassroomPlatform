@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using System.Globalization;
-using System.Net;
 using Microsoft.AspNetCore.Http;
 
 namespace ITBS_Classroom.Middleware;
@@ -36,7 +35,7 @@ public class GlobalExceptionMiddleware
 
             context.Response.Clear();
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            context.Response.StatusCode = 500; // Internal Server Error
 
             var message = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr"
                 ? "Une erreur inattendue est survenue."
