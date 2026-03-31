@@ -1,67 +1,47 @@
-@model ITBS_Classroom.Models.Account.ManageAccountViewModel
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Mon compte" : "My account";
-}
+@model ITBS_Classroom.Models.ViewModels.ManageAccountViewModel
+@{ ViewData["Title"] = "Mon profil"; }
 
-<div class="row g-3">
-    <div class="col-lg-4">
-        <div class="card app-card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <img src="@(string.IsNullOrWhiteSpace(Model.CurrentProfileImagePath) ? Url.Content("~/img/default-avatar.svg") : Url.Content("~/" + Model.CurrentProfileImagePath))"
-                     class="profile-avatar-large mb-3"
-                     alt="avatar" />
-                <h5 class="mb-1">@Model.FirstName @Model.LastName</h5>
-                <div class="text-muted small">@Model.Email</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-8">
-        <div class="card app-card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <h4 class="mb-3">@(isFr ? "Gestion du compte" : "Account management")</h4>
-                @if (TempData["StatusMessage"] is string message)
-                {
-                    <div class="alert alert-success">@message</div>
-                }
-                <form method="post" enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="All" class="text-danger small"></div>
+<div class="uc-page-header">
+    <h1><i class="fa fa-user-circle me-2 text-blue"></i>Mon profil</h1>
+</div>
 
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <label asp-for="FirstName" class="form-label">@(isFr ? "Prénom" : "First name")</label>
-                            <input asp-for="FirstName" class="form-control" />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="LastName" class="form-label">@(isFr ? "Nom" : "Last name")</label>
-                            <input asp-for="LastName" class="form-control" />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="Email" class="form-label">Email</label>
-                            <input asp-for="Email" class="form-control" disabled />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="PhoneNumber" class="form-label">@(isFr ? "Téléphone" : "Phone")</label>
-                            <input asp-for="PhoneNumber" class="form-control" />
-                        </div>
-                        <div class="col-12">
-                            <label asp-for="ProfileImage" class="form-label">@(isFr ? "Photo de profil" : "Profile photo")</label>
-                            <input asp-for="ProfileImage" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
-                        </div>
+<div style="max-width:540px">
+    <div class="uc-card">
+        <div class="uc-card-body">
+            <div asp-validation-summary="All" class="uc-alert uc-alert-error mb-2"></div>
+            <form asp-action="Profile" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="uc-form-group">
+                        <label asp-for="FirstName" class="uc-label">Prenom</label>
+                        <input asp-for="FirstName" class="uc-input" />
+                        <span asp-validation-for="FirstName" class="text-red" style="font-size:.8rem"></span>
                     </div>
-
-                    <div class="mt-3 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">@(isFr ? "Mettre à jour" : "Update")</button>
-                        <a asp-action="ChangePassword" class="btn btn-outline-primary">@(isFr ? "Changer le mot de passe" : "Change password")</a>
+                    <div class="uc-form-group">
+                        <label asp-for="LastName" class="uc-label">Nom</label>
+                        <input asp-for="LastName" class="uc-input" />
+                        <span asp-validation-for="LastName" class="text-red" style="font-size:.8rem"></span>
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="uc-form-group">
+                    <label asp-for="Email" class="uc-label">Email</label>
+                    <input asp-for="Email" class="uc-input" disabled style="opacity:.7" />
+                </div>
+                <div class="uc-form-group">
+                    <label asp-for="PhoneNumber" class="uc-label">Telephone</label>
+                    <input asp-for="PhoneNumber" class="uc-input" type="tel" />
+                </div>
+                <div class="uc-form-group">
+                    <label asp-for="ProfileImage" class="uc-label">Photo de profil</label>
+                    <input asp-for="ProfileImage" type="file" class="uc-input" accept=".jpg,.jpeg,.png,.webp" />
+                    <span asp-validation-for="ProfileImage" class="text-red" style="font-size:.8rem"></span>
+                </div>
+                <button class="uc-btn uc-btn-primary" type="submit">
+                    <i class="fa fa-save"></i> Enregistrer
+                </button>
+            </form>
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

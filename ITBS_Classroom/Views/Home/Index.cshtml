@@ -1,15 +1,26 @@
-ï»¿@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = "ITBS Courses";
-}
-
-<section class="hero-panel p-5 rounded-4 shadow-sm">
-    <div class="py-2">
-        <h1 class="display-6 fw-bold mb-3">ITBS Courses</h1>
-        <p class="lead mb-4">@(isFr
-            ? "GÃ©rez vos cours, devoirs, soumissions, notes, messages et planning dans une interface claire et professionnelle."
-            : "Manage courses, assignments, submissions, grades, messaging, and planning in a clean, professional experience.")</p>
-        <a class="btn btn-primary btn-lg" asp-controller="Account" asp-action="Login">@(isFr ? "Connexion" : "Login")</a>
+@{ ViewData["Title"] = "UniClassroom"; Layout = null; }
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UniClassroom</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<div class="uc-auth-page" style="background:linear-gradient(135deg,#1a73e8,#174ea6,#0d3880)">
+    <div style="text-align:center;color:#fff;max-width:560px;padding:24px">
+        <i class="fa-solid fa-graduation-cap" style="font-size:4rem;margin-bottom:16px;display:block"></i>
+        <h1 style="font-size:2.5rem;font-weight:800;margin-bottom:12px">UniClassroom</h1>
+        <p style="font-size:1.1rem;opacity:.85;margin-bottom:36px">
+            La plateforme universitaire moderne pour gérer vos cours, devoirs et étudiants.
+        </p>
+        <a class="uc-btn uc-btn-primary" asp-controller="Account" asp-action="Login"
+           style="font-size:1rem;padding:14px 36px;border-radius:30px;background:#fff;color:#1a73e8;display:inline-flex">
+            <i class="fa fa-sign-in-alt me-2"></i>Se connecter
+        </a>
     </div>
-</section>
+</div>
+</body>
+</html>

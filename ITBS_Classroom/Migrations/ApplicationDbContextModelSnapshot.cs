@@ -22,7 +22,7 @@ namespace ITBS_Classroom.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.ApplicationUser", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -43,13 +43,11 @@ namespace ITBS_Classroom.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -75,8 +73,7 @@ namespace ITBS_Classroom.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("ProfileImagePath")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -98,10 +95,10 @@ namespace ITBS_Classroom.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Assignment", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Assignment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -119,7 +116,7 @@ namespace ITBS_Classroom.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<Guid?>("CourseId")
+                    b.Property<Guid>("CourseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -133,8 +130,8 @@ namespace ITBS_Classroom.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("MaxScore")
+                        .HasColumnType("int");
 
                     b.Property<string>("TeacherId")
                         .IsRequired()
@@ -145,49 +142,42 @@ namespace ITBS_Classroom.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
 
-                    b.HasIndex("GroupId");
-
                     b.HasIndex("TeacherId");
 
-                    b.ToTable("Assignments");
+                    b.ToTable("Assignments", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.CalendarEvent", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Course", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ColorTheme")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedById")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<DateTime>("EndUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsExam")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("StartUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("TeacherId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -196,40 +186,30 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedById");
-
-                    b.HasIndex("GroupId");
-
-                    b.ToTable("CalendarEvents");
-                });
-
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.ClassGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("TeacherId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
                     b.HasIndex("TeacherId");
 
-                    b.ToTable("Groups", (string)null);
+                    b.ToTable("Courses", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Course", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.CourseEnrollment", b =>
+                {
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StudentId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("EnrolledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("CourseId", "StudentId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("CourseEnrollments", (string)null);
+                });
+
+            modelBuilder.Entity("ITBS_Classroom.Models.CourseMaterial", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -240,13 +220,15 @@ namespace ITBS_Classroom.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -258,31 +240,25 @@ namespace ITBS_Classroom.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("TeacherId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("UploadedById")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupId");
+                    b.HasIndex("CourseId");
 
-                    b.HasIndex("TeacherId");
+                    b.HasIndex("UploadedById");
 
-                    b.ToTable("Courses");
+                    b.ToTable("CourseMaterials", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Grade", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Grade", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -296,8 +272,7 @@ namespace ITBS_Classroom.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("Score")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("decimal(6,2)");
 
                     b.Property<Guid>("SubmissionId")
                         .HasColumnType("uniqueidentifier");
@@ -313,28 +288,10 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("TeacherId");
 
-                    b.ToTable("Grades");
+                    b.ToTable("Grades", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.GroupStudent", b =>
-                {
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("StudentId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("JoinedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("GroupId", "StudentId");
-
-                    b.HasIndex("StudentId");
-
-                    b.ToTable("GroupStudents");
-                });
-
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Message", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Message", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -364,16 +321,16 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("ThreadId");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.MessageThread", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.MessageThread", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("AssignmentId")
+                    b.Property<Guid?>("CourseId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -384,12 +341,12 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignmentId");
+                    b.HasIndex("CourseId");
 
-                    b.ToTable("MessageThreads");
+                    b.ToTable("MessageThreads", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.MessageThreadParticipant", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.MessageThreadParticipant", b =>
                 {
                     b.Property<Guid>("ThreadId")
                         .HasColumnType("uniqueidentifier");
@@ -404,10 +361,10 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("MessageThreadParticipants");
+                    b.ToTable("MessageThreadParticipants", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Notification", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Notification", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -444,10 +401,10 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Submission", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Submission", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -483,12 +440,11 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssignmentId");
+
                     b.HasIndex("StudentId");
 
-                    b.HasIndex("AssignmentId", "StudentId")
-                        .IsUnique();
-
-                    b.ToTable("Submissions");
+                    b.ToTable("Submissions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -515,7 +471,7 @@ namespace ITBS_Classroom.Migrations
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -540,7 +496,7 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("RoleClaims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -565,7 +521,7 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("UserClaims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -587,7 +543,7 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("UserLogins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -602,7 +558,7 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -621,93 +577,87 @@ namespace ITBS_Classroom.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("UserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Assignment", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Assignment", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.Course", "Course")
+                    b.HasOne("ITBS_Classroom.Models.Course", "Course")
                         .WithMany("Assignments")
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ClassGroup", "Group")
-                        .WithMany("Assignments")
-                        .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "Teacher")
-                        .WithMany("AssignmentsCreated")
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "Teacher")
+                        .WithMany("CreatedAssignments")
                         .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Course");
 
-                    b.Navigation("Group");
-
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.CalendarEvent", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Course", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "CreatedBy")
-                        .WithMany("CalendarEventsCreated")
-                        .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ClassGroup", "Group")
-                        .WithMany("Events")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CreatedBy");
-
-                    b.Navigation("Group");
-                });
-
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.ClassGroup", b =>
-                {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "Teacher")
-                        .WithMany("TeachingGroups")
-                        .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Teacher");
-                });
-
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Course", b =>
-                {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ClassGroup", "Group")
-                        .WithMany("Courses")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "Teacher")
-                        .WithMany("CoursesCreated")
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "Teacher")
+                        .WithMany("TaughtCourses")
                         .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Group");
-
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Grade", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.CourseEnrollment", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.Submission", "Submission")
+                    b.HasOne("ITBS_Classroom.Models.Course", "Course")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "Student")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("ITBS_Classroom.Models.CourseMaterial", b =>
+                {
+                    b.HasOne("ITBS_Classroom.Models.Course", "Course")
+                        .WithMany("Materials")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("ITBS_Classroom.Models.Grade", b =>
+                {
+                    b.HasOne("ITBS_Classroom.Models.Submission", "Submission")
                         .WithOne("Grade")
-                        .HasForeignKey("ITBS_Classroom.Domain.Entities.Grade", "SubmissionId")
+                        .HasForeignKey("ITBS_Classroom.Models.Grade", "SubmissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "Teacher")
-                        .WithMany("GradesPublished")
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "Teacher")
+                        .WithMany("GradesGiven")
                         .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -717,34 +667,15 @@ namespace ITBS_Classroom.Migrations
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.GroupStudent", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Message", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ClassGroup", "Group")
-                        .WithMany("Students")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "Student")
-                        .WithMany("GroupMemberships")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Group");
-
-                    b.Navigation("Student");
-                });
-
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Message", b =>
-                {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "Sender")
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "Sender")
                         .WithMany("SentMessages")
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("ITBS_Classroom.Domain.Entities.MessageThread", "Thread")
+                    b.HasOne("ITBS_Classroom.Models.MessageThread", "Thread")
                         .WithMany("Messages")
                         .HasForeignKey("ThreadId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -755,25 +686,25 @@ namespace ITBS_Classroom.Migrations
                     b.Navigation("Thread");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.MessageThread", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.MessageThread", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.Assignment", "Assignment")
+                    b.HasOne("ITBS_Classroom.Models.Course", "Course")
                         .WithMany("MessageThreads")
-                        .HasForeignKey("AssignmentId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("Assignment");
+                    b.Navigation("Course");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.MessageThreadParticipant", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.MessageThreadParticipant", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.MessageThread", "Thread")
+                    b.HasOne("ITBS_Classroom.Models.MessageThread", "Thread")
                         .WithMany("Participants")
                         .HasForeignKey("ThreadId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "User")
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "User")
                         .WithMany("MessageThreadParticipants")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -784,9 +715,9 @@ namespace ITBS_Classroom.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Notification", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Notification", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "User")
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -795,15 +726,15 @@ namespace ITBS_Classroom.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Submission", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Submission", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.Assignment", "Assignment")
+                    b.HasOne("ITBS_Classroom.Models.Assignment", "Assignment")
                         .WithMany("Submissions")
                         .HasForeignKey("AssignmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", "Student")
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", "Student")
                         .WithMany("Submissions")
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -825,7 +756,7 @@ namespace ITBS_Classroom.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", null)
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -834,7 +765,7 @@ namespace ITBS_Classroom.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", null)
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -849,7 +780,7 @@ namespace ITBS_Classroom.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", null)
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -858,24 +789,20 @@ namespace ITBS_Classroom.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("ITBS_Classroom.Domain.Entities.ApplicationUser", null)
+                    b.HasOne("ITBS_Classroom.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.ApplicationUser", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.ApplicationUser", b =>
                 {
-                    b.Navigation("AssignmentsCreated");
+                    b.Navigation("CreatedAssignments");
 
-                    b.Navigation("CalendarEventsCreated");
+                    b.Navigation("Enrollments");
 
-                    b.Navigation("CoursesCreated");
-
-                    b.Navigation("GradesPublished");
-
-                    b.Navigation("GroupMemberships");
+                    b.Navigation("GradesGiven");
 
                     b.Navigation("MessageThreadParticipants");
 
@@ -885,40 +812,33 @@ namespace ITBS_Classroom.Migrations
 
                     b.Navigation("Submissions");
 
-                    b.Navigation("TeachingGroups");
+                    b.Navigation("TaughtCourses");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Assignment", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Assignment", b =>
                 {
-                    b.Navigation("MessageThreads");
-
                     b.Navigation("Submissions");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.ClassGroup", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Course", b =>
                 {
                     b.Navigation("Assignments");
 
-                    b.Navigation("Courses");
+                    b.Navigation("Enrollments");
 
-                    b.Navigation("Events");
+                    b.Navigation("Materials");
 
-                    b.Navigation("Students");
+                    b.Navigation("MessageThreads");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Course", b =>
-                {
-                    b.Navigation("Assignments");
-                });
-
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.MessageThread", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.MessageThread", b =>
                 {
                     b.Navigation("Messages");
 
                     b.Navigation("Participants");
                 });
 
-            modelBuilder.Entity("ITBS_Classroom.Domain.Entities.Submission", b =>
+            modelBuilder.Entity("ITBS_Classroom.Models.Submission", b =>
                 {
                     b.Navigation("Grade");
                 });

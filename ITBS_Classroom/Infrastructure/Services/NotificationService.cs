@@ -1,45 +1,40 @@
 using ITBS_Classroom.Application.Interfaces.Services;
-using ITBS_Classroom.Domain.Entities;
-using ITBS_Classroom.Domain.Enums;
 using ITBS_Classroom.Infrastructure.Data;
+using ITBS_Classroom.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ITBS_Classroom.Infrastructure.Services;
 
 public class NotificationService : INotificationService
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly ApplicationDbContext _db;
 
-    public NotificationService(ApplicationDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
+    public NotificationService(ApplicationDbContext db) => _db = db;
 
-    public async Task NotifyGroupStudentsAsync(Guid groupId, string message, NotificationType type, Guid? courseId = null, Guid? assignmentId = null, Guid? gradeId = null, CancellationToken cancellationToken = default)
+    public async Task NotifyCourseStudentsAsync(Guid courseId, string message, NotificationType type,
+        Guid? courseId2 = null, Guid? assignmentId = null, Guid? gradeId = null,
+        CancellationToken cancellationToken = default)
     {
-        var studentIds = await _dbContext.GroupStudents
-            .Where(x => x.GroupId == groupId)
-            .Select(x => x.StudentId)
+        var studentIds = await _db.CourseEnrollments
+            .Where(e => e.CourseId == courseId)
+            .Select(e => e.StudentId)
             .ToListAsync(cancellationToken);
 
-        if (studentIds.Count == 0)
-        {
-            return;
-        }
+        if (studentIds.Count == 0) return;
 
-        var notifications = studentIds.Select(studentId => new Notification
+        var notifications = studentIds.Select(sid => new Notification
         {
             Id = Guid.NewGuid(),
-            UserId = studentId,
+            UserId = sid,
             Message = message,
             Type = type,
-            CourseId = courseId,
+            CourseId = courseId2 ?? courseId,
             AssignmentId = assignmentId,
             GradeId = gradeId,
             CreatedAtUtc = DateTime.UtcNow
         });
 
-        await _dbContext.Notifications.AddRangeAsync(notifications, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _db.Notifications.AddRangeAsync(notifications, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }

@@ -1,0 +1,357 @@
+@model ITBS_Classroom.Models.ViewModels.CourseDetailViewModel
+@using ITBS_Classroom.Models
+@{
+    ViewData["Title"] = Model.Course.Title;
+    var canEdit = Model.IsTeacher || Model.IsAdmin;
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
+
+<div class="uc-detail-banner" style="background:linear-gradient(135deg, @Model.Course.ColorTheme, @Model.Course.ColorTheme + 'cc')">
+    <div>
+        <div style="font-size:.85rem;opacity:.8;margin-bottom:6px">
+            <i class="fa fa-graduation-cap me-1"></i>@Model.Course.Teacher.FullName
+            @if (!string.IsNullOrEmpty(Model.Course.Section))
+            { <span> · @Model.Course.Section</span> }
+        </div>
+        <h1>@Model.Course.Title</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Course.Description))
+        { <p class="sub">@Model.Course.Description</p> }
+    </div>
+</div>
+
+<!-- TABS -->
+<div class="uc-tabs">
+    <button class="uc-tab active" data-tab="stream">
+        <i class="fa fa-stream me-1"></i>Flux
+    </button>
+    <button class="uc-tab" data-tab="assignments">
+        <i class="fa fa-tasks me-1"></i>Devoirs (@Model.Assignments.Count)
+    </button>
+    <button class="uc-tab" data-tab="materials">
+        <i class="fa fa-folder-open me-1"></i>Supports (@Model.Materials.Count)
+    </button>
+    @if (canEdit)
+    {
+        <button class="uc-tab" data-tab="students">
+            <i class="fa fa-users me-1"></i>Etudiants (@Model.Students.Count)
+        </button>
+    }
+</div>
+
+<!-- STREAM TAB -->
+<div class="uc-tab-panel active" id="tab-stream">
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px">
+        <div>
+            @if (!Model.Assignments.Any() && !Model.Materials.Any())
+            {
+                <div class="uc-empty uc-card">
+                    <i class="fa fa-bell"></i>
+                    <p>Aucune activite recente dans ce cours.</p>
+                </div>
+            }
+            @foreach (var a in Model.Assignments.Take(3))
+            {
+                var daysLeft = (a.DeadlineUtc - DateTime.UtcNow).TotalDays;
+                var cls = daysLeft < 0 ? "uc-deadline-past" : daysLeft < 1 ? "uc-deadline-urgent" : daysLeft < 3 ? "uc-deadline-soon" : "uc-deadline-ok";
+                <div class="uc-assignment-item mb-2" style="margin-bottom:10px">
+                    <div class="uc-assignment-icon"><i class="fa fa-clipboard-list"></i></div>
+                    <div style="flex:1">
+                        <div style="font-weight:600">@a.Title</div>
+                        <div class="text-soft" style="font-size:.82rem">@a.Description.Substring(0, Math.Min(80, a.Description.Length))@(a.Description.Length > 80 ? "…" : "")</div>
+                    </div>
+                    <div style="text-align:right">
+                        <span class="uc-deadline @cls">
+                            @(daysLeft < 0 ? "Expire" : daysLeft < 1 ? "Auj." : $"{a.DeadlineUtc.ToLocalTime():dd/MM}")
+                        </span>
+                        @if (!canEdit)
+                        {
+                            var status = Model.SubmissionStatuses.GetValueOrDefault(a.Id);
+                            <div style="font-size:.75rem;margin-top:4px;color:@(status == SubmissionStatus.Submitted ? "#34a853" : "#ea4335")">
+                                @(status == SubmissionStatus.Submitted ? "? Rendu" : "Non rendu")
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <!-- Course info panel -->
+        <div>
+            <div class="uc-card" style="margin-bottom:16px">
+                <div class="uc-card-body">
+                    <h4 style="font-size:.9rem;font-weight:700;margin-bottom:12px">
+                        <i class="fa fa-info-circle me-1 text-blue"></i>A propos
+                    </h4>
+                    <div style="font-size:.85rem;color:#5f6368;display:flex;flex-direction:column;gap:8px">
+                        <div><i class="fa fa-chalkboard-teacher me-2"></i>@Model.Course.Teacher.FullName</div>
+                        <div><i class="fa fa-users me-2"></i>@Model.Students.Count etudiant(s)</div>
+                        <div><i class="fa fa-tasks me-2"></i>@Model.Assignments.Count devoir(s)</div>
+                        <div><i class="fa fa-calendar-alt me-2"></i>@Model.Course.CreatedAtUtc.ToLocalTime().ToString("MMMM yyyy")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ASSIGNMENTS TAB -->
+<div class="uc-tab-panel" id="tab-assignments">
+    @if (canEdit)
+    {
+        <div class="uc-card mb-3" style="margin-bottom:20px">
+            <div class="uc-card-body">
+                <h4 style="font-size:.95rem;font-weight:700;margin-bottom:14px">
+                    <i class="fa fa-plus me-1 text-blue"></i>Nouveau devoir
+                </h4>
+                <form asp-controller="Assignments" asp-action="Create" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="CourseId" value="@Model.Course.Id" />
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="uc-form-group">
+                            <label class="uc-label">Titre *</label>
+                            <input name="Title" class="uc-input" required maxlength="200" />
+                        </div>
+                        <div class="uc-form-group">
+                            <label class="uc-label">Date limite *</label>
+                            <input name="DeadlineUtc" type="datetime-local" class="uc-input" required />
+                        </div>
+                    </div>
+                    <div class="uc-form-group">
+                        <label class="uc-label">Description *</label>
+                        <textarea name="Description" class="uc-textarea" rows="2" required maxlength="4000"></textarea>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 120px;gap:12px">
+                        <div class="uc-form-group">
+                            <label class="uc-label">Pièce jointe (optionnel)</label>
+                            <input name="Attachment" type="file" class="uc-input" />
+                        </div>
+                        <div class="uc-form-group">
+                            <label class="uc-label">Note max</label>
+                            <input name="MaxScore" type="number" value="20" min="1" max="1000" class="uc-input" />
+                        </div>
+                    </div>
+                    <button class="uc-btn uc-btn-primary" type="submit">
+                        <i class="fa fa-plus"></i> Publier le devoir
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+
+    @if (!Model.Assignments.Any())
+    {
+        <div class="uc-empty"><i class="fa fa-tasks"></i><p>Aucun devoir pour ce cours.</p></div>
+    }
+    else
+    {
+        @foreach (var a in Model.Assignments)
+        {
+            var daysLeft = (a.DeadlineUtc - DateTime.UtcNow).TotalDays;
+            var cls = daysLeft < 0 ? "uc-deadline-past" : daysLeft < 1 ? "uc-deadline-urgent" : daysLeft < 3 ? "uc-deadline-soon" : "uc-deadline-ok";
+            <div class="uc-assignment-item">
+                <div class="uc-assignment-icon"><i class="fa fa-clipboard-list"></i></div>
+                <div style="flex:1">
+                    <div style="font-weight:600">@a.Title</div>
+                    <div class="text-soft" style="font-size:.82rem">@a.Description.Substring(0, Math.Min(100, a.Description.Length))@(a.Description.Length > 100 ? "…" : "")</div>
+                    <div class="text-soft" style="font-size:.78rem;margin-top:4px">
+                        Note max: @a.MaxScore pts
+                        @if (a.AttachmentPath is not null)
+                        {
+                            <a asp-controller="Assignments" asp-action="DownloadAttachment" asp-route-id="@a.Id" class="ms-2 text-blue">
+                                <i class="fa fa-paperclip"></i> @a.AttachmentName
+                            </a>
+                        }
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                    <span class="uc-deadline @cls">
+                        @a.DeadlineUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                    </span>
+                    @if (!canEdit)
+                    {
+                        var status = Model.SubmissionStatuses.GetValueOrDefault(a.Id);
+                        if (status != SubmissionStatus.Submitted)
+                        {
+                            <a class="uc-btn uc-btn-primary uc-btn-sm"
+                               asp-controller="Assignments" asp-action="Submit" asp-route-assignmentId="@a.Id">
+                                <i class="fa fa-upload"></i> Rendre
+                            </a>
+                        }
+                        else
+                        {
+                            <span style="font-size:.78rem;color:#34a853;font-weight:600"><i class="fa fa-check me-1"></i>Rendu</span>
+                        }
+                    }
+                    @if (canEdit)
+                    {
+                        <div style="display:flex;gap:6px">
+                            <a class="uc-btn uc-btn-outline uc-btn-sm"
+                               asp-controller="Submissions" asp-action="ByAssignment" asp-route-assignmentId="@a.Id">
+                                <i class="fa fa-eye"></i> Rendus
+                            </a>
+                            <form asp-controller="Assignments" asp-action="Delete" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@a.Id" />
+                                <button class="uc-btn uc-btn-danger uc-btn-sm" type="submit"
+                                        onclick="return confirm('Supprimer ce devoir ?')">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- MATERIALS TAB -->
+<div class="uc-tab-panel" id="tab-materials">
+    @if (canEdit)
+    {
+        <div class="uc-card mb-3" style="margin-bottom:20px">
+            <div class="uc-card-body">
+                <h4 style="font-size:.95rem;font-weight:700;margin-bottom:14px">
+                    <i class="fa fa-upload me-1 text-blue"></i>Ajouter un support
+                </h4>
+                <form asp-controller="Courses" asp-action="UploadMaterial" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="CourseId" value="@Model.Course.Id" />
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="uc-form-group">
+                            <label class="uc-label">Titre *</label>
+                            <input name="Title" class="uc-input" required maxlength="200" />
+                        </div>
+                        <div class="uc-form-group">
+                            <label class="uc-label">Fichier * (pdf, doc, ppt, zip)</label>
+                            <input name="File" type="file" class="uc-input" required />
+                        </div>
+                    </div>
+                    <div class="uc-form-group">
+                        <label class="uc-label">Description</label>
+                        <input name="Description" class="uc-input" maxlength="2000" />
+                    </div>
+                    <button class="uc-btn uc-btn-primary" type="submit">
+                        <i class="fa fa-upload"></i> Publier le support
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+
+    @if (!Model.Materials.Any())
+    {
+        <div class="uc-empty"><i class="fa fa-folder-open"></i><p>Aucun support pour ce cours.</p></div>
+    }
+    else
+    {
+        <div style="display:flex;flex-direction:column;gap:10px">
+            @foreach (var mat in Model.Materials)
+            {
+                var ext = System.IO.Path.GetExtension(mat.FileName).ToLower();
+                string bgCls, iconClass;
+                if (ext == ".pdf")       { bgCls = "uc-mat-pdf";  iconClass = "fa-file-pdf"; }
+                else if (ext == ".doc" || ext == ".docx") { bgCls = "uc-mat-doc"; iconClass = "fa-file-word"; }
+                else if (ext == ".ppt" || ext == ".pptx") { bgCls = "uc-mat-ppt"; iconClass = "fa-file-powerpoint"; }
+                else if (ext == ".zip")  { bgCls = "uc-mat-zip";  iconClass = "fa-file-archive"; }
+                else                     { bgCls = "uc-mat-file"; iconClass = "fa-file"; }
+                <div class="uc-material-item">
+                    <div class="uc-material-icon @bgCls">
+                        <i class="fa @iconClass fa-fw"></i>
+                    </div>
+                    <div style="flex:1">
+                        <div style="font-weight:600;font-size:.9rem">@mat.Title</div>
+                        @if (!string.IsNullOrWhiteSpace(mat.Description))
+                        { <div class="text-soft" style="font-size:.8rem">@mat.Description</div> }
+                        <div class="text-soft" style="font-size:.78rem">@mat.FileName · @mat.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <a class="uc-btn uc-btn-outline uc-btn-sm"
+                           asp-controller="Courses" asp-action="Download" asp-route-materialId="@mat.Id">
+                            <i class="fa fa-download"></i> Telecharger
+                        </a>
+                        @if (canEdit)
+                        {
+                            <form asp-controller="Courses" asp-action="DeleteMaterial" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="materialId" value="@mat.Id" />
+                                <input type="hidden" name="courseId" value="@Model.Course.Id" />
+                                <button class="uc-btn uc-btn-danger uc-btn-sm" type="submit"
+                                        onclick="return confirm('Supprimer ce support ?')">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- STUDENTS TAB (teacher/admin only) -->
+@if (canEdit)
+{
+    <div class="uc-tab-panel" id="tab-students">
+        @if (!Model.Students.Any())
+        {
+            <div class="uc-empty"><i class="fa fa-users"></i><p>Aucun etudiant inscrit.</p></div>
+        }
+        else
+        {
+            <div class="uc-card">
+                <table class="uc-table">
+                    <thead>
+                        <tr>
+                            <th>Etudiant</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.Students)
+                        {
+                            <tr>
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:10px">
+                                        <div class="uc-avatar" style="width:34px;height:34px;font-size:.8rem">@s.Initials</div>
+                                        @s.FullName
+                                    </div>
+                                </td>
+                                <td class="text-soft">@s.Email</td>
+                                <td>
+                                    @if (User.IsInRole(ApplicationRoles.Teacher))
+                                    {
+                                        <form asp-controller="Messages" asp-action="CreateDirectThread" method="post" style="display:inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="targetUserId" value="@s.Id" />
+                                            <button class="uc-btn uc-btn-outline uc-btn-sm" type="submit">
+                                                <i class="fa fa-comment"></i> Message
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tabs = document.querySelectorAll('.uc-tab');
+    tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            tabs.forEach(function(t){ t.classList.remove('active'); });
+            document.querySelectorAll('.uc-tab-panel').forEach(function(p){ p.classList.remove('active'); });
+            this.classList.add('active');
+            var panel = document.getElementById('tab-' + this.dataset.tab);
+            if (panel) panel.classList.add('active');
+        });
+    });
+});
+</script>
+}

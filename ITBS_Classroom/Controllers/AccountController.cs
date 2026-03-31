@@ -1,220 +1,138 @@
-using ITBS_Classroom.Domain.Entities;
-using ITBS_Classroom.Domain.Entities;
-using ITBS_Classroom.Domain.Enums;
-using ITBS_Classroom.Models.Account;
+using ITBS_Classroom.Models;
+using ITBS_Classroom.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Globalization;
 
 namespace ITBS_Classroom.Controllers;
 
 public class AccountController : Controller
 {
-    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".png", ".webp"
-    };
+    private static readonly HashSet<string> AllowedImageExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp" };
 
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IWebHostEnvironment _env;
 
-    public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
+    public AccountController(SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager, IWebHostEnvironment env)
     {
         _signInManager = signInManager;
         _userManager = userManager;
-        _environment = environment;
+        _env = env;
     }
 
-    [AllowAnonymous]
-    [HttpGet]
-    public IActionResult Login()
-    {
-        return View(new LoginViewModel());
-    }
+    [AllowAnonymous, HttpGet]
+    public IActionResult Login() => View(new LoginViewModel());
 
-    [AllowAnonymous]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
+    [AllowAnonymous, HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
+        if (!ModelState.IsValid) return View(model);
+        var result = await _signInManager.PasswordSignInAsync(
+            model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
         if (result.Succeeded)
         {
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
                 return LocalRedirect(returnUrl);
-            }
-
             return RedirectToAction("Index", "Dashboard");
         }
-
-        ModelState.AddModelError(string.Empty, IsFrench() ? "Identifiants invalides." : "Invalid credentials.");
+        ModelState.AddModelError(string.Empty, result.IsLockedOut
+            ? "Compte verrouille temporairement."
+            : "Email ou mot de passe invalide.");
         return View(model);
     }
 
-    [Authorize]
-    [HttpGet]
-    public IActionResult ChangePassword()
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Logout()
     {
-        return View(new ChangePasswordViewModel());
+        await _signInManager.SignOutAsync();
+        return RedirectToAction("Login");
     }
 
-    [Authorize]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
+    [Authorize, HttpGet]
+    public IActionResult ChangePassword() => View(new ChangePasswordViewModel());
+
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
+        if (!ModelState.IsValid) return View(model);
         var user = await _userManager.GetUserAsync(User);
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
+        if (user is null) return Unauthorized();
         var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
         if (!result.Succeeded)
         {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-
+            foreach (var e in result.Errors) ModelState.AddModelError(string.Empty, e.Description);
             return View(model);
         }
-
         await _signInManager.RefreshSignInAsync(user);
-        TempData["StatusMessage"] = IsFrench() ? "Mot de passe mis à jour." : "Password updated.";
+        TempData["Success"] = "Mot de passe mis a jour.";
         return RedirectToAction(nameof(ChangePassword));
     }
 
-    [Authorize(Roles = $"{ApplicationRoles.Teacher},{ApplicationRoles.Student}")]
-    [HttpGet]
+    [Authorize(Roles = ApplicationRoles.Teacher + "," + ApplicationRoles.Student), HttpGet]
     public async Task<IActionResult> Profile()
     {
         var user = await _userManager.GetUserAsync(User);
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
-        var vm = new ManageAccountViewModel
+        if (user is null) return Unauthorized();
+        return View(new ManageAccountViewModel
         {
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email ?? string.Empty,
             PhoneNumber = user.PhoneNumber,
             CurrentProfileImagePath = user.ProfileImagePath
-        };
-
-        return View(vm);
+        });
     }
 
-    [Authorize(Roles = $"{ApplicationRoles.Teacher},{ApplicationRoles.Student}")]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Profile(ManageAccountViewModel model, CancellationToken cancellationToken)
+    [Authorize(Roles = ApplicationRoles.Teacher + "," + ApplicationRoles.Student),
+     HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Profile(ManageAccountViewModel model, CancellationToken ct)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
+        if (!ModelState.IsValid) return View(model);
         var user = await _userManager.GetUserAsync(User);
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
+        if (user is null) return Unauthorized();
         user.FirstName = model.FirstName;
         user.LastName = model.LastName;
         user.PhoneNumber = model.PhoneNumber;
-
         if (model.ProfileImage is not null)
         {
-            var extension = Path.GetExtension(model.ProfileImage.FileName);
-            if (!AllowedImageExtensions.Contains(extension))
+            var ext = Path.GetExtension(model.ProfileImage.FileName);
+            if (!AllowedImageExtensions.Contains(ext))
             {
-                ModelState.AddModelError(nameof(model.ProfileImage), IsFrench() ? "Format image non autorisé." : "Image format not allowed.");
+                ModelState.AddModelError(nameof(model.ProfileImage), "Format image non autorise.");
                 model.CurrentProfileImagePath = user.ProfileImagePath;
                 return View(model);
             }
-
             if (model.ProfileImage.Length > 2 * 1024 * 1024)
             {
-                ModelState.AddModelError(nameof(model.ProfileImage), IsFrench() ? "Image trop volumineuse (max 2 MB)." : "Image is too large (max 2 MB).");
+                ModelState.AddModelError(nameof(model.ProfileImage), "Image trop volumineuse (max 2 MB).");
                 model.CurrentProfileImagePath = user.ProfileImagePath;
                 return View(model);
             }
-
-            user.ProfileImagePath = await SaveProfileImageAsync(model.ProfileImage, user.Id, cancellationToken);
+            user.ProfileImagePath = await SaveProfileImageAsync(model.ProfileImage, user.Id, ct);
         }
-
-        var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-
-            model.CurrentProfileImagePath = user.ProfileImagePath;
-            return View(model);
-        }
-
+        await _userManager.UpdateAsync(user);
         await _signInManager.RefreshSignInAsync(user);
-        TempData["StatusMessage"] = IsFrench() ? "Profil mis à jour." : "Profile updated.";
+        TempData["Success"] = "Profil mis a jour.";
         return RedirectToAction(nameof(Profile));
     }
 
-    [Authorize]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Logout()
-    {
-        await _signInManager.SignOutAsync();
-        return RedirectToAction("Login", "Account");
-    }
-
     [HttpGet]
-    public IActionResult AccessDenied()
-    {
-        return View();
-    }
+    public IActionResult AccessDenied() => View();
 
-    private static bool IsFrench()
+    private async Task<string> SaveProfileImageAsync(IFormFile image, string userId, CancellationToken ct)
     {
-        return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    }
-
-    private async Task<string> SaveProfileImageAsync(IFormFile image, string userId, CancellationToken cancellationToken)
-    {
-        var extension = Path.GetExtension(image.FileName);
-        var fileName = $"{Guid.NewGuid()}{extension}";
-        var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        var folder = Path.Combine(webRoot, "uploads", "profiles", userId);
+        var ext = Path.GetExtension(image.FileName);
+        var fileName = Guid.NewGuid().ToString() + ext;
+        var web = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var folder = Path.Combine(web, "uploads", "profiles", userId);
         Directory.CreateDirectory(folder);
-
-        var oldFiles = Directory.GetFiles(folder);
-        foreach (var oldFile in oldFiles)
-        {
-            System.IO.File.Delete(oldFile);
-        }
-
-        var fullPath = Path.Combine(folder, fileName);
-        await using var stream = new FileStream(fullPath, FileMode.Create);
-        await image.CopyToAsync(stream, cancellationToken);
-
+        foreach (var old in Directory.GetFiles(folder)) System.IO.File.Delete(old);
+        var full = Path.Combine(folder, fileName);
+        await using var s = new FileStream(full, FileMode.Create);
+        await image.CopyToAsync(s, ct);
         return Path.Combine("uploads", "profiles", userId, fileName).Replace("\\", "/");
     }
 }

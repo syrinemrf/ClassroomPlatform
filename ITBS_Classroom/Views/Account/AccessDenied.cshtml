@@ -1,7 +1,11 @@
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Accès refusé" : "Access denied";
-}
+@{ ViewData["Title"] = "Accès refusé"; }
 
-<div class="alert alert-danger">@(isFr ? "Accès refusé." : "Access denied.")</div>
+<div class="uc-empty" style="padding:80px 20px">
+    <i class="fa fa-ban" style="color:#ea4335;opacity:.6"></i>
+    <p style="font-size:1.2rem;font-weight:700;color:#202124;margin-bottom:8px">Accès refusé</p>
+    <p>Vous n'avez pas les droits nécessaires pour accéder à cette page.</p>
+    <a class="uc-btn uc-btn-primary mt-2" asp-controller="Dashboard" asp-action="Index"
+       style="margin-top:16px;display:inline-flex">
+        <i class="fa fa-home"></i> Retour à l'accueil
+    </a>
+</div>

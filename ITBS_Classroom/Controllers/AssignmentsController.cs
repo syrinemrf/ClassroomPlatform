@@ -1,133 +1,86 @@
 using ITBS_Classroom.Application.Interfaces.Services;
-using ITBS_Classroom.Domain.Entities;
-using ITBS_Classroom.Domain.Enums;
 using ITBS_Classroom.Infrastructure.Data;
-using ITBS_Classroom.Models.Assignments;
-using ITBS_Classroom.Models.Submissions;
+using ITBS_Classroom.Models;
+using ITBS_Classroom.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
 
 namespace ITBS_Classroom.Controllers;
 
 [Authorize]
 public class AssignmentsController : Controller
 {
-    private readonly ApplicationDbContext _dbContext;
-    private readonly IFileStorageService _fileStorageService;
-    private readonly ISubmissionService _submissionService;
-    private readonly INotificationService _notificationService;
+    private readonly ApplicationDbContext _db;
+    private readonly IFileStorageService _files;
+    private readonly ISubmissionService _submissions;
+    private readonly INotificationService _notifications;
 
-    public AssignmentsController(
-        ApplicationDbContext dbContext,
-        IFileStorageService fileStorageService,
-        ISubmissionService submissionService,
-        INotificationService notificationService)
+    public AssignmentsController(ApplicationDbContext db, IFileStorageService files,
+        ISubmissionService submissions, INotificationService notifications)
     {
-        _dbContext = dbContext;
-        _fileStorageService = fileStorageService;
-        _submissionService = submissionService;
-        _notificationService = notificationService;
+        _db = db;
+        _files = files;
+        _submissions = submissions;
+        _notifications = notifications;
     }
+
+    // ?? Assignment list ??????????????????????????????????????????????????????
 
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(Guid? courseId, CancellationToken ct)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
 
-        IQueryable<Assignment> query = _dbContext.Assignments
-            .Include(x => x.Group)
-            .Include(x => x.Teacher)
+        IQueryable<Assignment> q = _db.Assignments
+            .Include(a => a.Course).ThenInclude(c => c.Teacher)
             .AsNoTracking();
 
-        if (User.IsInRole(ApplicationRoles.Teacher) && userId is not null)
+        if (courseId.HasValue) q = q.Where(a => a.CourseId == courseId.Value);
+
+        if (User.IsInRole(ApplicationRoles.Teacher))
+            q = q.Where(a => a.TeacherId == userId);
+        else if (User.IsInRole(ApplicationRoles.Student))
+            q = q.Where(a => a.Course.Enrollments.Any(e => e.StudentId == userId));
+
+        var list = await q.OrderBy(a => a.DeadlineUtc).ToListAsync(ct);
+
+        if (User.IsInRole(ApplicationRoles.Student))
         {
-            query = query.Where(x => x.Group.TeacherId == userId);
+            var ids = list.Select(a => a.Id).ToList();
+            var subs = await _db.Submissions
+                .Where(s => s.StudentId == userId && ids.Contains(s.AssignmentId))
+                .ToDictionaryAsync(s => s.AssignmentId, s => s.Status, ct);
+            ViewBag.SubmissionStatuses = subs;
         }
 
-        if (User.IsInRole(ApplicationRoles.Student) && userId is not null)
-        {
-            var groupIds = _dbContext.GroupStudents.Where(x => x.StudentId == userId).Select(x => x.GroupId);
-            query = query.Where(x => groupIds.Contains(x.GroupId));
-        }
-
-        var assignments = await query.OrderBy(x => x.DeadlineUtc).ToListAsync(cancellationToken);
-
-        if (User.IsInRole(ApplicationRoles.Teacher) && userId is not null)
-        {
-            ViewBag.Groups = await _dbContext.Groups
-                .Where(x => x.TeacherId == userId)
-                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                .ToListAsync(cancellationToken);
-        }
-        else if (User.IsInRole(ApplicationRoles.Admin))
-        {
-            ViewBag.Groups = await _dbContext.Groups
-                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                .ToListAsync(cancellationToken);
-        }
-
-        if (User.IsInRole(ApplicationRoles.Student) && userId is not null)
-        {
-            var assignmentIds = assignments.Select(x => x.Id).ToList();
-            var submissions = await _dbContext.Submissions
-                .Where(x => x.StudentId == userId && assignmentIds.Contains(x.AssignmentId))
-                .ToDictionaryAsync(x => x.AssignmentId, x => x.Status, cancellationToken);
-            ViewBag.SubmissionStatuses = submissions;
-        }
-
-        return View(assignments);
+        ViewBag.CourseId = courseId;
+        return View(list);
     }
 
-    [Authorize(Roles = $"{ApplicationRoles.Teacher},{ApplicationRoles.Admin}")]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(AssignmentCreateViewModel model, CancellationToken cancellationToken)
+    // ?? Create assignment (Teacher / Admin) ??????????????????????????????????
+
+    [Authorize(Roles = ApplicationRoles.Teacher + "," + ApplicationRoles.Admin)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(CreateAssignmentViewModel model, CancellationToken ct)
     {
         if (!ModelState.IsValid)
+            return RedirectToAction(nameof(Index), new { courseId = model.CourseId });
+
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
+        if (User.IsInRole(ApplicationRoles.Teacher))
         {
-            return RedirectToAction(nameof(Index));
+            var owned = await _db.Courses.AnyAsync(c => c.Id == model.CourseId && c.TeacherId == userId, ct);
+            if (!owned) return Forbid();
         }
 
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            return Unauthorized();
-        }
-
-        var group = await _dbContext.Groups.AsNoTracking().FirstOrDefaultAsync(x => x.Id == model.GroupId, cancellationToken);
-        if (group is null)
-        {
-            return NotFound();
-        }
-
-        if (User.IsInRole(ApplicationRoles.Teacher) && group.TeacherId != userId)
-        {
-            return Forbid();
-        }
-
-        if (model.CourseId.HasValue)
-        {
-            var courseExistsForGroup = await _dbContext.Courses.AsNoTracking()
-                .AnyAsync(x => x.Id == model.CourseId.Value && x.GroupId == model.GroupId, cancellationToken);
-            if (!courseExistsForGroup)
-            {
-                return BadRequest();
-            }
-        }
-
-        string? attachmentPath = null;
-        string? attachmentName = null;
-        string? attachmentContentType = null;
-
+        string? attachPath = null, attachName = null, attachType = null;
         if (model.Attachment is not null)
         {
-            var saveResult = await _fileStorageService.SaveAsync(model.Attachment, Path.Combine("assignments", model.GroupId.ToString()), cancellationToken);
-            attachmentPath = saveResult.RelativePath;
-            attachmentName = saveResult.StoredFileName;
-            attachmentContentType = model.Attachment.ContentType;
+            var (p, _) = await _files.SaveAsync(model.Attachment, "assignments/" + model.CourseId, ct);
+            attachPath = p;
+            attachName = model.Attachment.FileName;
+            attachType = model.Attachment.ContentType;
         }
 
         var assignment = new Assignment
@@ -135,116 +88,127 @@ public class AssignmentsController : Controller
             Id = Guid.NewGuid(),
             Title = model.Title,
             Description = model.Description,
-            DeadlineUtc = model.DeadlineUtc,
-            GroupId = model.GroupId,
+            DeadlineUtc = model.DeadlineUtc.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(model.DeadlineUtc, DateTimeKind.Utc)
+                : model.DeadlineUtc.ToUniversalTime(),
+            MaxScore = model.MaxScore,
             CourseId = model.CourseId,
             TeacherId = userId,
-            AttachmentPath = attachmentPath,
-            AttachmentName = attachmentName,
-            AttachmentContentType = attachmentContentType,
+            AttachmentPath = attachPath,
+            AttachmentName = attachName,
+            AttachmentContentType = attachType,
             CreatedAtUtc = DateTime.UtcNow
         };
 
-        await _dbContext.Assignments.AddAsync(assignment, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _db.Assignments.AddAsync(assignment, ct);
+        await _db.SaveChangesAsync(ct);
 
-        var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-        var message = isFr ? "Nouveau devoir créé." : "New assignment created.";
-        await _notificationService.NotifyGroupStudentsAsync(assignment.GroupId, message, NotificationType.AssignmentCreated, assignmentId: assignment.Id, cancellationToken: cancellationToken);
+        await _notifications.NotifyCourseStudentsAsync(model.CourseId,
+            "Nouveau devoir : " + model.Title,
+            NotificationType.AssignmentCreated, assignmentId: assignment.Id, cancellationToken: ct);
 
-        return RedirectToAction(nameof(Index));
+        TempData["Success"] = "Devoir cree.";
+        return RedirectToAction("Detail", "Courses", new { id = model.CourseId });
     }
+
+    // ?? Submit assignment (Student) ??????????????????????????????????????????
 
     [Authorize(Roles = ApplicationRoles.Student)]
     [HttpGet]
-    public IActionResult Submit(Guid assignmentId)
+    public async Task<IActionResult> Submit(Guid assignmentId, CancellationToken ct)
     {
-        return View(new SubmissionCreateViewModel { AssignmentId = assignmentId });
+        var a = await _db.Assignments.Include(x => x.Course)
+            .AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignmentId, ct);
+        if (a is null) return NotFound();
+        ViewBag.Assignment = a;
+        return View(new SubmitAssignmentViewModel { AssignmentId = assignmentId });
     }
 
     [Authorize(Roles = ApplicationRoles.Student)]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Submit(SubmissionCreateViewModel model, CancellationToken cancellationToken)
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Submit(SubmitAssignmentViewModel model, CancellationToken ct)
     {
         if (!ModelState.IsValid)
         {
+            var a2 = await _db.Assignments.Include(x => x.Course)
+                .AsNoTracking().FirstOrDefaultAsync(x => x.Id == model.AssignmentId, ct);
+            ViewBag.Assignment = a2;
             return View(model);
         }
 
-        var studentId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrWhiteSpace(studentId))
-        {
-            return Unauthorized();
-        }
-
+        var studentId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
         var now = DateTime.UtcNow;
-        var deadlineValidation = await _submissionService.ValidateSubmissionDeadlineAsync(model.AssignmentId, now, cancellationToken);
-        if (!deadlineValidation.IsAllowed)
+
+        var (allowed, msg) = await _submissions.ValidateSubmissionDeadlineAsync(model.AssignmentId, now, ct);
+        if (!allowed)
         {
-            ModelState.AddModelError(string.Empty, deadlineValidation.Message);
+            ModelState.AddModelError(string.Empty, msg);
+            var a3 = await _db.Assignments.Include(x => x.Course)
+                .AsNoTracking().FirstOrDefaultAsync(x => x.Id == model.AssignmentId, ct);
+            ViewBag.Assignment = a3;
             return View(model);
         }
 
-        var existingSubmission = await _dbContext.Submissions
-            .FirstOrDefaultAsync(x => x.AssignmentId == model.AssignmentId && x.StudentId == studentId, cancellationToken);
+        var path = await _submissions.SaveSubmissionFileAsync(model.File, studentId, model.AssignmentId, ct);
+        var existing = await _db.Submissions
+            .FirstOrDefaultAsync(s => s.AssignmentId == model.AssignmentId && s.StudentId == studentId, ct);
 
-        var relativePath = await _submissionService.SaveSubmissionFileAsync(model.File, studentId, model.AssignmentId, cancellationToken);
-
-        if (existingSubmission is null)
+        if (existing is null)
         {
-            existingSubmission = new Submission
+            await _db.Submissions.AddAsync(new Submission
             {
                 Id = Guid.NewGuid(),
                 AssignmentId = model.AssignmentId,
                 StudentId = studentId,
-                FilePath = relativePath,
-                FileName = Path.GetFileName(relativePath),
+                FilePath = path,
+                FileName = model.File.FileName,
                 ContentType = model.File.ContentType,
                 SubmittedAtUtc = now,
                 Status = SubmissionStatus.Submitted
-            };
-
-            await _dbContext.Submissions.AddAsync(existingSubmission, cancellationToken);
+            }, ct);
         }
         else
         {
-            existingSubmission.FilePath = relativePath;
-            existingSubmission.FileName = Path.GetFileName(relativePath);
-            existingSubmission.ContentType = model.File.ContentType;
-            existingSubmission.SubmittedAtUtc = now;
-            existingSubmission.Status = SubmissionStatus.Submitted;
+            existing.FilePath = path;
+            existing.FileName = model.File.FileName;
+            existing.ContentType = model.File.ContentType;
+            existing.SubmittedAtUtc = now;
+            existing.Status = SubmissionStatus.Submitted;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync(ct);
+        TempData["Success"] = "Devoir soumis avec succes.";
 
-        return RedirectToAction(nameof(Index));
+        var assignment = await _db.Assignments.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == model.AssignmentId, ct);
+        return RedirectToAction("Detail", "Courses", new { id = assignment?.CourseId });
     }
 
-    [Authorize(Roles = $"{ApplicationRoles.Teacher},{ApplicationRoles.Admin}")]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    // ?? Delete assignment ????????????????????????????????????????????????????
+
+    [Authorize(Roles = ApplicationRoles.Teacher + "," + ApplicationRoles.Admin)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var assignment = await _dbContext.Assignments.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (assignment is null)
-        {
-            return NotFound();
-        }
+        var a = await _db.Assignments.FindAsync(new object[] { id }, ct);
+        if (a is null) return NotFound();
+        var cid = a.CourseId;
+        _db.Assignments.Remove(a);
+        await _db.SaveChangesAsync(ct);
+        TempData["Success"] = "Devoir supprime.";
+        return RedirectToAction("Detail", "Courses", new { id = cid });
+    }
 
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (User.IsInRole(ApplicationRoles.Teacher) && !string.IsNullOrWhiteSpace(userId))
-        {
-            var isTeacherGroup = await _dbContext.Groups.AsNoTracking().AnyAsync(x => x.Id == assignment.GroupId && x.TeacherId == userId, cancellationToken);
-            if (!isTeacherGroup)
-            {
-                return Forbid();
-            }
-        }
+    // ?? Download attachment ??????????????????????????????????????????????????
 
-        _dbContext.Assignments.Remove(assignment);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return RedirectToAction(nameof(Index));
+    [HttpGet]
+    public async Task<IActionResult> DownloadAttachment(Guid id, CancellationToken ct)
+    {
+        var a = await _db.Assignments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (a is null || a.AttachmentPath is null) return NotFound();
+        var physical = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
+            a.AttachmentPath.Replace('/', Path.DirectorySeparatorChar));
+        if (!System.IO.File.Exists(physical)) return NotFound();
+        return PhysicalFile(physical, a.AttachmentContentType!, a.AttachmentName!);
     }
 }

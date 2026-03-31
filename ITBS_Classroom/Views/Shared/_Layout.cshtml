@@ -1,119 +1,155 @@
-﻿<!DOCTYPE html>
-@using System.Globalization
+@using ITBS_Classroom.Models
 @{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    var currentPath = Context.Request.Path + Context.Request.QueryString;
-    var path = Context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
-    string ActiveClass(string prefix) => path.StartsWith(prefix) ? "active" : string.Empty;
+    var path = Context.Request.Path.Value?.ToLowerInvariant() ?? "";
+    string Nav(string prefix) => path.StartsWith(prefix) ? "active" : "";
+    var isAuth = User.Identity?.IsAuthenticated ?? false;
+    var isAdmin = User.IsInRole(ApplicationRoles.Admin);
+    var isTeacher = User.IsInRole(ApplicationRoles.Teacher);
+    var isStudent = User.IsInRole(ApplicationRoles.Student);
+    var userInitials = User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "?";
 }
 <!DOCTYPE html>
-<html lang="@(isFr ? "fr" : "en")">
+<html lang="fr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ITBS Courses</title>
+    <title>@ViewData["Title"] � UniClassroom</title>
+    <link rel="icon" href="~/favicon.ico" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/ITBS_Classroom.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg app-navbar shadow-sm">
-            <div class="container-fluid">
-                <a class="navbar-brand fw-semibold" asp-controller="Dashboard" asp-action="Index">ITBS Courses</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navMenu" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+
+@if (isAuth)
+{
+    <!-- TOP NAVBAR -->
+    <header class="uc-topbar">
+        <div class="uc-topbar-left">
+            <button class="uc-sidebar-toggle" id="sidebarToggle" aria-label="Menu">
+                <i class="fa fa-bars"></i>
+            </button>
+            <a class="uc-brand" asp-controller="Dashboard" asp-action="Index">
+                <span class="uc-brand-icon"><i class="fa-solid fa-graduation-cap"></i></span>
+                <span class="uc-brand-text">UniClassroom</span>
+            </a>
+        </div>
+        <div class="uc-topbar-right">
+            <a class="uc-topbar-btn" asp-controller="Notifications" asp-action="Index"
+               title="Notifications" id="notifBell">
+                <i class="fa fa-bell"></i>
+                <span class="uc-badge" id="notifCount" style="display:none"></span>
+            </a>
+            @if (isTeacher || isStudent)
+            {
+                <a class="uc-topbar-btn" asp-controller="Messages" asp-action="Index" title="Messages">
+                    <i class="fa fa-envelope"></i>
+                </a>
+            }
+            <div class="uc-avatar-dropdown">
+                <button class="uc-avatar" id="avatarBtn" aria-label="Account">
+                    @userInitials
                 </button>
-                <div id="navMenu" class="collapse navbar-collapse">
-                    <div class="me-auto"></div>
-
-                    <div class="d-flex gap-2 align-items-center flex-wrap">
-                        <div class="d-flex align-items-center gap-1">
-                            <form asp-controller="Home" asp-action="SetLanguage" method="post" class="m-0">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="culture" value="fr" />
-                                <input type="hidden" name="returnUrl" value="@currentPath" />
-                                <button class="btn btn-sm @(isFr ? "btn-warning" : "btn-outline-light")" type="submit">FR</button>
-                            </form>
-                            <form asp-controller="Home" asp-action="SetLanguage" method="post" class="m-0">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="culture" value="en" />
-                                <input type="hidden" name="returnUrl" value="@currentPath" />
-                                <button class="btn btn-sm @(!isFr ? "btn-warning" : "btn-outline-light")" type="submit">EN</button>
-                            </form>
+                <div class="uc-dropdown" id="avatarDropdown">
+                    <div class="uc-dropdown-header">
+                        <div class="uc-avatar uc-avatar-lg">@userInitials</div>
+                        <div>
+                            <div class="fw-semibold">@User.Identity?.Name</div>
+                            <div class="uc-role-badge">
+                                @(isAdmin ? "Administrateur" : isTeacher ? "Enseignant" : "Etudiant")
+                            </div>
                         </div>
-                        <button id="themeToggle" type="button" class="btn btn-sm btn-outline-light">@(isFr ? "Mode sombre" : "Dark mode")</button>
-
-                        @if (User.Identity?.IsAuthenticated ?? false)
-                        {
-                            @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
-                            {
-                                <a class="btn btn-sm btn-outline-light" asp-controller="Account" asp-action="Profile">@(isFr ? "Mon compte" : "My account")</a>
-                            }
-                            <a class="btn btn-sm btn-outline-light" asp-controller="Account" asp-action="ChangePassword">@(isFr ? "Mot de passe" : "Password")</a>
-                            <span class="text-white-50 small">@User.Identity?.Name</span>
-                            <form asp-controller="Account" asp-action="Logout" method="post">
-                                @Html.AntiForgeryToken()
-                                <button class="btn btn-sm btn-warning" type="submit">@(isFr ? "Déconnexion" : "Logout")</button>
-                            </form>
-                        }
-                        else
-                        {
-                            <a class="btn btn-sm btn-warning" asp-controller="Account" asp-action="Login">@(isFr ? "Connexion" : "Login")</a>
-                        }
                     </div>
+                    @if (isTeacher || isStudent)
+                    {
+                        <a class="uc-dropdown-item" asp-controller="Account" asp-action="Profile">
+                            <i class="fa fa-user-circle me-2"></i>Mon profil
+                        </a>
+                    }
+                    <a class="uc-dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                        <i class="fa fa-lock me-2"></i>Mot de passe
+                    </a>
+                    <div class="uc-dropdown-divider"></div>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <button class="uc-dropdown-item uc-dropdown-danger" type="submit">
+                            <i class="fa fa-sign-out-alt me-2"></i>Deconnexion
+                        </button>
+                    </form>
                 </div>
             </div>
-        </nav>
+        </div>
     </header>
-    @if (User.Identity?.IsAuthenticated ?? false)
-    {
-        <div class="app-shell">
-            <aside class="app-sidebar">
-                <div class="sidebar-title">@(isFr ? "Navigation" : "Navigation")</div>
-                <a class="sidebar-link @ActiveClass("/dashboard")" asp-controller="Dashboard" asp-action="Index">@(isFr ? "Tableau de bord" : "Dashboard")</a>
-                <a class="sidebar-link @ActiveClass("/courses")" asp-controller="Courses" asp-action="Index">@(isFr ? "Cours" : "Courses")</a>
-                <a class="sidebar-link @ActiveClass("/assignments")" asp-controller="Assignments" asp-action="Index">@(isFr ? "Devoirs" : "Assignments")</a>
-                <a class="sidebar-link @ActiveClass("/submissions")" asp-controller="Submissions" asp-action="MyGrades">@(isFr ? "Notes" : "Grades")</a>
-                <a class="sidebar-link @ActiveClass("/calendar")" asp-controller="Calendar" asp-action="Index">@(isFr ? "Calendrier" : "Calendar")</a>
-                <a class="sidebar-link @ActiveClass("/messages")" asp-controller="Messages" asp-action="Index">@(isFr ? "Messages" : "Messages")</a>
-                <a class="sidebar-link @ActiveClass("/notifications")" asp-controller="Notifications" asp-action="Index">@(isFr ? "Notifications" : "Notifications")</a>
-                @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
-                {
-                    <a class="sidebar-link @ActiveClass("/account/profile")" asp-controller="Account" asp-action="Profile">@(isFr ? "Mon compte" : "My account")</a>
-                }
 
-                @if (User.IsInRole("Admin"))
+    <!-- LAYOUT -->
+    <div class="uc-shell">
+        <!-- SIDEBAR -->
+        <aside class="uc-sidebar" id="sidebar">
+            <nav class="uc-nav">
+                <a class="uc-nav-item @Nav("/dashboard")" asp-controller="Dashboard" asp-action="Index">
+                    <i class="fa fa-home"></i><span>Accueil</span>
+                </a>
+                <a class="uc-nav-item @Nav("/courses")" asp-controller="Courses" asp-action="Index">
+                    <i class="fa fa-book-open"></i><span>Mes cours</span>
+                </a>
+                <a class="uc-nav-item @Nav("/calendar")" asp-controller="Calendar" asp-action="Index">
+                    <i class="fa fa-calendar-alt"></i><span>Calendrier</span>
+                </a>
+                @if (isStudent)
                 {
-                    <div class="sidebar-section">Admin</div>
-                    <a class="sidebar-link @ActiveClass("/admin/users")" asp-controller="Admin" asp-action="Users">@(isFr ? "Utilisateurs" : "Users")</a>
-                    <a class="sidebar-link @ActiveClass("/admin/groups")" asp-controller="Admin" asp-action="Groups">@(isFr ? "Groupes" : "Groups")</a>
+                    <a class="uc-nav-item @Nav("/submissions/mygrades")" asp-controller="Submissions" asp-action="MyGrades">
+                        <i class="fa fa-chart-bar"></i><span>Mes notes</span>
+                    </a>
                 }
-            </aside>
-            <div class="app-content">
-                <main role="main" class="container-fluid py-4 app-main">
-                    @RenderBody()
-                </main>
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="container py-4 app-main">
-            <main role="main">
-                @RenderBody()
-            </main>
-        </div>
-    }
+                @if (isTeacher || isStudent)
+                {
+                    <a class="uc-nav-item @Nav("/messages")" asp-controller="Messages" asp-action="Index">
+                        <i class="fa fa-comments"></i><span>Messages</span>
+                    </a>
+                }
+                <a class="uc-nav-item @Nav("/notifications")" asp-controller="Notifications" asp-action="Index">
+                    <i class="fa fa-bell"></i><span>Notifications</span>
+                </a>
 
-    <footer class="border-top py-3 app-footer">
-        <div class="container-fluid small px-4">
-            &copy; 2026 ITBS Courses
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+                @if (isAdmin)
+                {
+                    <div class="uc-nav-section">Administration</div>
+                    <a class="uc-nav-item @Nav("/admin/users")" asp-controller="Admin" asp-action="Users">
+                        <i class="fa fa-users-cog"></i><span>Utilisateurs</span>
+                    </a>
+                    <a class="uc-nav-item @Nav("/admin/courses")" asp-controller="Admin" asp-action="Courses">
+                        <i class="fa fa-chalkboard-teacher"></i><span>Cours</span>
+                    </a>
+                }
+            </nav>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="uc-main">
+            @if (TempData["Success"] is string ok)
+            {
+                <div class="uc-alert uc-alert-success">
+                    <i class="fa fa-check-circle me-2"></i>@ok
+                </div>
+            }
+            @if (TempData["Error"] is string err)
+            {
+                <div class="uc-alert uc-alert-error">
+                    <i class="fa fa-exclamation-circle me-2"></i>@err
+                </div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+}
+else
+{
+    @RenderBody()
+}
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,53 +1,132 @@
-@model ITBS_Classroom.Models.Admin.CreatePlatformUserViewModel
-@using ITBS_Classroom.Domain.Enums
-@using System.Globalization
+@using ITBS_Classroom.Models
+@using ITBS_Classroom.Models.ViewModels
+@model CreatePlatformUserViewModel
 @{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Gestion utilisateurs" : "User management";
-    var users = ViewBag.Users as IEnumerable<ITBS_Classroom.Domain.Entities.ApplicationUser> ?? Enumerable.Empty<ITBS_Classroom.Domain.Entities.ApplicationUser>();
+    ViewData["Title"] = "Gestion des utilisateurs";
+    var users = ViewBag.Users as List<ApplicationUser> ?? new();
+    var userRoles = ViewBag.UserRoles as Dictionary<string, IList<string>> ?? new();
 }
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <div class="card app-card border-0 shadow-sm">
-            <div class="card-body">
-                <h5>@(isFr ? "Créer un utilisateur" : "Create user")</h5>
-                <form asp-action="CreateUser" method="post">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="All" class="text-danger small"></div>
-                    <input asp-for="FirstName" class="form-control mb-2" placeholder="@(isFr ? "Prénom" : "First name")" />
-                    <input asp-for="LastName" class="form-control mb-2" placeholder="@(isFr ? "Nom" : "Last name")" />
-                    <input asp-for="Email" class="form-control mb-2" placeholder="Email" />
-                    <input asp-for="Password" class="form-control mb-2" placeholder="@(isFr ? "Mot de passe" : "Password")" />
-                    <select asp-for="Role" class="form-select mb-3">
-                        <option value="@ApplicationRoles.Teacher">Teacher</option>
-                        <option value="@ApplicationRoles.Student">Student</option>
-                    </select>
-                    <button class="btn btn-primary w-100" type="submit">@(isFr ? "Créer" : "Create")</button>
-                </form>
-            </div>
-        </div>
+<div class="uc-page-header d-flex justify-between align-center">
+    <div>
+        <h1><i class="fa fa-users-cog me-2 text-blue"></i>Utilisateurs</h1>
+        <p>@users.Count utilisateur(s) enregistre(s)</p>
     </div>
-    <div class="col-lg-8">
-        <div class="card app-card border-0 shadow-sm">
-            <div class="card-body">
-                <h5>@(isFr ? "Liste des utilisateurs" : "Users list")</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle">
-                        <thead><tr><th>@(isFr ? "Nom" : "Name")</th><th>Email</th></tr></thead>
-                        <tbody>
-                        @foreach (var user in users)
-                        {
-                            <tr><td>@user.FirstName @user.LastName</td><td>@user.Email</td></tr>
-                        }
-                        </tbody>
-                    </table>
+    <button class="uc-btn uc-btn-primary" onclick="document.getElementById('createUserPanel').style.display='block';this.style.display='none'">
+        <i class="fa fa-user-plus"></i> Nouvel utilisateur
+    </button>
+</div>
+
+<!-- CREATE FORM -->
+<div class="uc-card mb-3" id="createUserPanel" style="display:none;margin-bottom:24px">
+    <div class="uc-card-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:1rem;font-weight:700;margin:0">Créer un compte</h3>
+            <button class="uc-btn uc-btn-ghost uc-btn-sm" type="button"
+                    onclick="document.getElementById('createUserPanel').style.display='none';document.querySelector('[onclick*=createUserPanel]').style.display='inline-flex'">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <form asp-action="CreateUser" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="uc-alert uc-alert-error mb-2"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                <div class="uc-form-group">
+                    <label class="uc-label">Prénom</label>
+                    <input asp-for="FirstName" class="uc-input" />
+                </div>
+                <div class="uc-form-group">
+                    <label class="uc-label">Nom</label>
+                    <input asp-for="LastName" class="uc-input" />
+                </div>
+                <div class="uc-form-group">
+                    <label class="uc-label">Role</label>
+                    <select asp-for="Role" class="uc-select">
+                        <option value="">— Choisir —</option>
+                        <option value="Teacher">Enseignant</option>
+                        <option value="Student">Etudiant</option>
+                    </select>
+                </div>
+                <div class="uc-form-group">
+                    <label class="uc-label">Email</label>
+                    <input asp-for="Email" type="email" class="uc-input" />
+                </div>
+                <div class="uc-form-group">
+                    <label class="uc-label">Mot de passe</label>
+                    <input asp-for="Password" type="password" class="uc-input" />
                 </div>
             </div>
-        </div>
+            <button class="uc-btn uc-btn-primary" type="submit">
+                <i class="fa fa-save"></i> Créer
+            </button>
+        </form>
     </div>
 </div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+<!-- USERS TABLE -->
+@if (!users.Any())
+{
+    <div class="uc-empty uc-card"><i class="fa fa-users"></i><p>Aucun utilisateur.</p></div>
 }
+else
+{
+    <div class="uc-card">
+        <table class="uc-table">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in users)
+                {
+                    var roles = userRoles.GetValueOrDefault(u.Id) ?? new List<string>();
+                    var role = roles.FirstOrDefault() ?? "—";
+                    var roleColor = role == "Admin" ? "#ea4335" : role == "Teacher" ? "#1a73e8" : "#34a853";
+                    <tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:10px">
+                                @if (!string.IsNullOrEmpty(u.ProfileImagePath))
+                                {
+                                    <img src="~/uploads/profiles/@u.Id/@System.IO.Path.GetFileName(u.ProfileImagePath)"
+                                         style="width:36px;height:36px;border-radius:50%;object-fit:cover" />
+                                }
+                                else
+                                {
+                                    <div class="uc-avatar" style="background:@roleColor">@u.Initials</div>
+                                }
+                                <div>
+                                    <div style="font-weight:600">@u.FullName</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-soft">@u.Email</td>
+                        <td>
+                            <span style="background:@(roleColor + "20");color:@roleColor;padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:700">
+                                @role
+                            </span>
+                        </td>
+                        <td>
+                            @if (role != "Admin")
+                            {
+                                <form asp-action="DeleteUser" method="post" style="display:inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button class="uc-btn uc-btn-danger uc-btn-sm" type="submit"
+                                            onclick="return confirm('Supprimer cet utilisateur ?')">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

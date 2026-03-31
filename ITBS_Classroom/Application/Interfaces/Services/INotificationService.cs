@@ -1,8 +1,10 @@
-using ITBS_Classroom.Domain.Enums;
+using ITBS_Classroom.Models;
 
 namespace ITBS_Classroom.Application.Interfaces.Services;
 
 public interface INotificationService
 {
-    Task NotifyGroupStudentsAsync(Guid groupId, string message, NotificationType type, Guid? courseId = null, Guid? assignmentId = null, Guid? gradeId = null, CancellationToken cancellationToken = default);
+    Task NotifyCourseStudentsAsync(Guid courseId, string message, NotificationType type,
+        Guid? courseId2 = null, Guid? assignmentId = null, Guid? gradeId = null,
+        CancellationToken cancellationToken = default);
 }

@@ -1,19 +1,55 @@
-@model ITBS_Classroom.Models.Admin.AdminDashboardViewModel
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = "Admin";
-}
+@model ITBS_Classroom.Models.ViewModels.AdminDashboardViewModel
+@{ ViewData["Title"] = "Tableau de bord Admin"; }
 
-<h2 class="mb-4">@(isFr ? "Tableau de bord Admin" : "Admin dashboard")</h2>
-<div class="row g-3">
-    <div class="col-md-4">
-        <div class="card app-card border-0 shadow-sm"><div class="card-body"><h6>@(isFr ? "Utilisateurs" : "Users")</h6><h3>@Model.TotalUsers</h3></div></div>
+<div class="uc-page-header">
+    <h1><i class="fa fa-tachometer-alt me-2 text-blue"></i>Tableau de bord</h1>
+    <p>Vue d'ensemble de la plateforme UniClassroom</p>
+</div>
+
+<div class="uc-stats">
+    <div class="uc-stat">
+        <div class="uc-stat-num" style="color:#1a73e8">@Model.TotalCourses</div>
+        <div class="uc-stat-label"><i class="fa fa-book-open me-1"></i>Cours</div>
     </div>
-    <div class="col-md-4">
-        <div class="card app-card border-0 shadow-sm"><div class="card-body"><h6>@(isFr ? "Groupes" : "Groups")</h6><h3>@Model.TotalGroups</h3></div></div>
+    <div class="uc-stat">
+        <div class="uc-stat-num" style="color:#34a853">@Model.TotalTeachers</div>
+        <div class="uc-stat-label"><i class="fa fa-chalkboard-teacher me-1"></i>Enseignants</div>
     </div>
-    <div class="col-md-4">
-        <div class="card app-card border-0 shadow-sm"><div class="card-body"><h6>@(isFr ? "Cours" : "Courses")</h6><h3>@Model.TotalCourses</h3></div></div>
+    <div class="uc-stat">
+        <div class="uc-stat-num" style="color:#9334e6">@Model.TotalStudents</div>
+        <div class="uc-stat-label"><i class="fa fa-user-graduate me-1"></i>Etudiants</div>
+    </div>
+    <div class="uc-stat">
+        <div class="uc-stat-num" style="color:#fa7b17">@Model.TotalAssignments</div>
+        <div class="uc-stat-label"><i class="fa fa-tasks me-1"></i>Devoirs</div>
+    </div>
+    <div class="uc-stat">
+        <div class="uc-stat-num" style="color:#5f6368">@Model.TotalUsers</div>
+        <div class="uc-stat-label"><i class="fa fa-users me-1"></i>Utilisateurs</div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="uc-card">
+        <div class="uc-card-body">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px">
+                <i class="fa fa-users-cog me-2 text-blue"></i>Gestion des utilisateurs
+            </h3>
+            <p class="text-soft" style="font-size:.9rem">Créez et gérez les comptes enseignants et étudiants.</p>
+            <a class="uc-btn uc-btn-primary uc-btn-sm mt-2" asp-controller="Admin" asp-action="Users">
+                <i class="fa fa-arrow-right"></i> Gérer les utilisateurs
+            </a>
+        </div>
+    </div>
+    <div class="uc-card">
+        <div class="uc-card-body">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:16px">
+                <i class="fa fa-chalkboard-teacher me-2 text-green"></i>Gestion des cours
+            </h3>
+            <p class="text-soft" style="font-size:.9rem">Créez des cours, assignez des enseignants et inscrivez des étudiants.</p>
+            <a class="uc-btn uc-btn-green uc-btn-sm mt-2" asp-controller="Admin" asp-action="Courses">
+                <i class="fa fa-arrow-right"></i> Gérer les cours
+            </a>
+        </div>
     </div>
 </div>

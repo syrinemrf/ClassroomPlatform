@@ -1,64 +1,60 @@
-@model IEnumerable<ITBS_Classroom.Domain.Entities.Assignment>
-@using ITBS_Classroom.Domain.Enums
-@using System.Globalization
+@model IEnumerable<ITBS_Classroom.Models.Assignment>
+@using ITBS_Classroom.Models
 @{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Devoirs" : "Assignments";
-    var groups = ViewBag.Groups as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
-    var statuses = ViewBag.SubmissionStatuses as Dictionary<Guid, SubmissionStatus> ?? new Dictionary<Guid, SubmissionStatus>();
+    ViewData["Title"] = "Devoirs";
+    var submissionStatuses = ViewBag.SubmissionStatuses as Dictionary<Guid, SubmissionStatus> ?? new();
+    var isStudent = User.IsInRole(ApplicationRoles.Student);
+    var isTeacher = User.IsInRole(ApplicationRoles.Teacher) || User.IsInRole(ApplicationRoles.Admin);
 }
 
-<h2 class="mb-3">@(isFr ? "Devoirs" : "Assignments")</h2>
+<div class="uc-page-header">
+    <h1><i class="fa fa-tasks me-2 text-blue"></i>Devoirs</h1>
+    <p>@Model.Count() devoir(s) au total</p>
+</div>
 
-@if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+@if (!Model.Any())
 {
-    <div class="card app-card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <h5>@(isFr ? "Nouveau devoir" : "New assignment")</h5>
-            <form asp-action="Create" method="post" enctype="multipart/form-data" class="row g-2">
-                @Html.AntiForgeryToken()
-                <div class="col-md-6"><input name="Title" class="form-control" placeholder="@(isFr ? "Titre" : "Title")" required /></div>
-                <div class="col-md-6"><input name="DeadlineUtc" type="datetime-local" class="form-control" required /></div>
-                <div class="col-md-8"><textarea name="Description" class="form-control" rows="2" placeholder="@(isFr ? "Description" : "Description")" required></textarea></div>
-                <div class="col-md-4"><select name="GroupId" asp-items="groups" class="form-select" required></select></div>
-                <div class="col-md-8"><input type="file" name="Attachment" class="form-control" /></div>
-                <div class="col-md-4"><button class="btn btn-primary w-100" type="submit">@(isFr ? "Créer" : "Create")</button></div>
-            </form>
-        </div>
-    </div>
+    <div class="uc-empty uc-card"><i class="fa fa-tasks"></i><p>Aucun devoir disponible.</p></div>
 }
-
-<div class="row g-3">
-@foreach (var assignment in Model)
+else
 {
-    <div class="col-md-6 col-xl-4">
-        <div class="card app-card border-0 shadow-sm h-100">
-            <div class="card-body d-flex flex-column">
-                <h5>@assignment.Title</h5>
-                <p class="small text-muted">@assignment.Description</p>
-                <p class="small mb-1">Deadline UTC: @assignment.DeadlineUtc</p>
-                <p class="small">@(isFr ? "Groupe" : "Group"): @assignment.Group.Name</p>
-
-                @if (User.IsInRole("Student"))
+    @foreach (var a in Model)
+    {
+        var days = (a.DeadlineUtc - DateTime.UtcNow).TotalDays;
+        var cls = days < 0 ? "uc-deadline-past" : days < 1 ? "uc-deadline-urgent" : days < 3 ? "uc-deadline-soon" : "uc-deadline-ok";
+        <div class="uc-assignment-item">
+            <div class="uc-assignment-icon"><i class="fa fa-clipboard-list"></i></div>
+            <div style="flex:1">
+                <div style="font-weight:600">@a.Title</div>
+                <div class="text-soft" style="font-size:.82rem">
+                    <i class="fa fa-book-open me-1"></i>@a.Course.Title
+                    &nbsp;·&nbsp;<i class="fa fa-user me-1"></i>@a.Course.Teacher.FullName
+                </div>
+                <div class="text-soft" style="font-size:.8rem;margin-top:2px">@a.Description.Substring(0, Math.Min(100, a.Description.Length))@(a.Description.Length > 100 ? "…" : "")</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <span class="uc-deadline @cls">@a.DeadlineUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                @if (isStudent)
                 {
-                    var status = statuses.ContainsKey(assignment.Id) ? statuses[assignment.Id] : SubmissionStatus.NotSubmitted;
-                    <span class="badge bg-secondary mb-2">@status</span>
-                    <a class="btn btn-outline-primary btn-sm" asp-action="Submit" asp-route-assignmentId="@assignment.Id">@(isFr ? "Soumettre" : "Submit")</a>
+                    var status = submissionStatuses.GetValueOrDefault(a.Id);
+                    if (status == SubmissionStatus.Submitted)
+                    { <span style="font-size:.78rem;color:#34a853;font-weight:600"><i class="fa fa-check"></i> Rendu</span> }
+                    else if (days > 0)
+                    {
+                        <a class="uc-btn uc-btn-primary uc-btn-sm"
+                           asp-controller="Assignments" asp-action="Submit" asp-route-assignmentId="@a.Id">
+                            <i class="fa fa-upload"></i> Rendre
+                        </a>
+                    }
                 }
-
-                @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+                @if (isTeacher)
                 {
-                    <div class="mt-auto d-flex gap-2">
-                        <a class="btn btn-outline-primary btn-sm" asp-controller="Submissions" asp-action="ByAssignment" asp-route-assignmentId="@assignment.Id">@(isFr ? "Soumissions" : "Submissions")</a>
-                        <form asp-action="Delete" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@assignment.Id" />
-                            <button class="btn btn-outline-danger btn-sm" type="submit">@(isFr ? "Supprimer" : "Delete")</button>
-                        </form>
-                    </div>
+                    <a class="uc-btn uc-btn-outline uc-btn-sm"
+                       asp-controller="Submissions" asp-action="ByAssignment" asp-route-assignmentId="@a.Id">
+                        <i class="fa fa-eye"></i> Rendus
+                    </a>
                 }
             </div>
         </div>
-    </div>
+    }
 }
-</div>

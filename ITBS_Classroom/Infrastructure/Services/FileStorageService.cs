@@ -7,44 +7,33 @@ public class FileStorageService : IFileStorageService
 {
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".pdf",
-        ".doc",
-        ".docx",
-        ".ppt",
-        ".pptx"
+        ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".zip"
     };
 
-    private readonly IWebHostEnvironment _environment;
+    private readonly IWebHostEnvironment _env;
 
-    public FileStorageService(IWebHostEnvironment environment)
-    {
-        _environment = environment;
-    }
+    public FileStorageService(IWebHostEnvironment env) => _env = env;
 
-    public bool IsAllowedExtension(string fileName)
-    {
-        var extension = Path.GetExtension(fileName);
-        return AllowedExtensions.Contains(extension);
-    }
+    public bool IsAllowedExtension(string fileName) =>
+        AllowedExtensions.Contains(Path.GetExtension(fileName));
 
-    public async Task<(string RelativePath, string StoredFileName)> SaveAsync(IFormFile file, string folder, CancellationToken cancellationToken = default)
+    public async Task<(string RelativePath, string StoredFileName)> SaveAsync(
+        IFormFile file, string folder, CancellationToken cancellationToken = default)
     {
         if (!IsAllowedExtension(file.FileName))
-        {
-            throw new InvalidOperationException("File type not allowed.");
-        }
+            throw new InvalidOperationException("Type de fichier non autorisé.");
 
-        var extension = Path.GetExtension(file.FileName);
-        var generatedName = $"{Guid.NewGuid()}{extension}";
-        var root = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var ext = Path.GetExtension(file.FileName);
+        var generated = $"{Guid.NewGuid()}{ext}";
+        var root = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         var fullFolder = Path.Combine(root, "uploads", folder);
         Directory.CreateDirectory(fullFolder);
 
-        var fullPath = Path.Combine(fullFolder, generatedName);
+        var fullPath = Path.Combine(fullFolder, generated);
         await using var stream = new FileStream(fullPath, FileMode.Create);
         await file.CopyToAsync(stream, cancellationToken);
 
-        var relativePath = Path.Combine("uploads", folder, generatedName).Replace("\\", "/");
-        return (relativePath, generatedName);
+        var relative = Path.Combine("uploads", folder, generated).Replace("\\", "/");
+        return (relative, generated);
     }
 }

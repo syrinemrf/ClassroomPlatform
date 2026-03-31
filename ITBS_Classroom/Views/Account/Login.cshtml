@@ -1,37 +1,50 @@
-@model ITBS_Classroom.Models.Account.LoginViewModel
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Connexion" : "Login";
-}
-
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card app-card shadow-sm border-0">
-            <div class="card-body p-4">
-                <h2 class="h4 mb-3">@(isFr ? "Connexion" : "Login")</h2>
-                <form method="post">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="All" class="text-danger small"></div>
-                    <div class="mb-3">
-                        <label asp-for="Email" class="form-label">Email</label>
-                        <input asp-for="Email" class="form-control" />
-                    </div>
-                    <div class="mb-3">
-                        <label asp-for="Password" class="form-label">@(isFr ? "Mot de passe" : "Password")</label>
-                        <input asp-for="Password" class="form-control" />
-                    </div>
-                    <div class="form-check mb-3">
-                        <input asp-for="RememberMe" class="form-check-input" />
-                        <label asp-for="RememberMe" class="form-check-label">@(isFr ? "Se souvenir de moi" : "Remember me")</label>
-                    </div>
-                    <button class="btn btn-primary w-100" type="submit">@(isFr ? "Se connecter" : "Sign in")</button>
-                </form>
-            </div>
+@model ITBS_Classroom.Models.ViewModels.LoginViewModel
+@{ ViewData["Title"] = "Connexion"; Layout = null; }
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connexion — UniClassroom</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<div class="uc-auth-page">
+    <div class="uc-auth-card">
+        <div class="uc-auth-logo">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <h1>UniClassroom</h1>
+            <p>Plateforme universitaire de gestion des cours</p>
         </div>
+
+        <div asp-validation-summary="All" class="uc-alert uc-alert-error mb-3" style="margin-bottom:16px"></div>
+
+        <form method="post" asp-action="Login" asp-controller="Account">
+            @Html.AntiForgeryToken()
+            <div class="uc-form-group">
+                <label asp-for="Email" class="uc-label">Adresse email</label>
+                <input asp-for="Email" class="uc-input" type="email" placeholder="prenom.nom@universite.tn" autocomplete="email" />
+                <span asp-validation-for="Email" class="text-red" style="font-size:.8rem"></span>
+            </div>
+            <div class="uc-form-group">
+                <label asp-for="Password" class="uc-label">Mot de passe</label>
+                <input asp-for="Password" class="uc-input" type="password" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-red" style="font-size:.8rem"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+                <input asp-for="RememberMe" type="checkbox" id="rememberMe" style="width:16px;height:16px;accent-color:#1a73e8" />
+                <label for="rememberMe" style="font-size:.85rem;margin:0">Se souvenir de moi</label>
+            </div>
+            <button class="uc-btn uc-btn-primary w-100" type="submit" style="justify-content:center;padding:12px">
+                <i class="fa fa-sign-in-alt"></i> Se connecter
+            </button>
+        </form>
     </div>
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
+</html>

@@ -1,44 +1,55 @@
-@model IEnumerable<ITBS_Classroom.Domain.Entities.CalendarEvent>
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Calendrier" : "Calendar";
-    var groups = ViewBag.Groups as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
-}
+@{ ViewData["Title"] = "Calendrier des deadlines"; }
 
-<h2 class="mb-3">@(isFr ? "Calendrier" : "Calendar")</h2>
-
-@if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
-{
-    <div class="card app-card border-0 shadow-sm mb-4"><div class="card-body">
-        <h5>@(isFr ? "Nouvel événement" : "New event")</h5>
-        <form asp-action="Create" method="post" class="row g-2">
-            @Html.AntiForgeryToken()
-            <div class="col-md-4"><select name="GroupId" asp-items="groups" class="form-select" required></select></div>
-            <div class="col-md-4"><input name="Title" class="form-control" placeholder="@(isFr ? "Titre" : "Title")" required /></div>
-            <div class="col-md-4"><input name="Description" class="form-control" placeholder="@(isFr ? "Description" : "Description")" required /></div>
-            <div class="col-md-4"><input name="StartUtc" type="datetime-local" class="form-control" required /></div>
-            <div class="col-md-4"><input name="EndUtc" type="datetime-local" class="form-control" required /></div>
-            <div class="col-md-2 form-check mt-2 ms-2"><input class="form-check-input" type="checkbox" name="IsExam" value="true" /><label class="form-check-label">@(isFr ? "Examen" : "Exam")</label></div>
-            <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">@(isFr ? "Créer" : "Create")</button></div>
-        </form>
-    </div></div>
-}
-
-<div class="table-responsive">
-<table class="table align-middle">
-<thead><tr><th>Titre</th><th>Groupe</th><th>Début</th><th>Fin</th><th>Type</th></tr></thead>
-<tbody>
-@foreach (var e in Model)
-{
-    <tr>
-        <td>@e.Title</td>
-        <td>@e.Group.Name</td>
-        <td>@e.StartUtc</td>
-        <td>@e.EndUtc</td>
-        <td>@(e.IsExam ? "Exam" : "Session")</td>
-    </tr>
-}
-</tbody>
-</table>
+<div class="uc-page-header">
+    <h1><i class="fa fa-calendar-alt me-2 text-blue"></i>Calendrier des deadlines</h1>
+    <p>Visualisez toutes les échéances de vos devoirs</p>
 </div>
+
+<div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+        <span style="width:14px;height:14px;border-radius:50%;background:#34a853;display:inline-block"></span> Plus de 7 jours
+    </span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+        <span style="width:14px;height:14px;border-radius:50%;background:#1a73e8;display:inline-block"></span> Moins de 7 jours
+    </span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+        <span style="width:14px;height:14px;border-radius:50%;background:#fbbc04;display:inline-block"></span> Moins de 3 jours
+    </span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+        <span style="width:14px;height:14px;border-radius:50%;background:#ff6d00;display:inline-block"></span> Aujourd'hui
+    </span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+        <span style="width:14px;height:14px;border-radius:50%;background:#ea4335;display:inline-block"></span> Expiré
+    </span>
+</div>
+
+<div class="uc-calendar-wrap">
+    <div id="calendar"></div>
+</div>
+
+@section Scripts {
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth',
+        locale: 'fr',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listMonth'
+        },
+        buttonText: { today: "Aujourd'hui", month: 'Mois', week: 'Semaine', list: 'Liste' },
+        events: '/Calendar/Events',
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        eventDidMount: function(info) {
+            info.el.title = info.event.title + '\nCours: ' + (info.event.extendedProps.courseName || '');
+        },
+        height: 'auto',
+        dayMaxEvents: 3
+    });
+    cal.render();
+});
+</script>
+}

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -17,6 +17,23 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Application\DTOs\Assignments\" />
+    <Folder Include="Application\Interfaces\Repositories\" />
+    <Folder Include="Domain\Entities\" />
+    <Folder Include="Domain\Enums\" />
+    <Folder Include="Infrastructure\Data\Configurations\" />
+    <Folder Include="Migrations\" />
+    <Folder Include="Models\Account\" />
+    <Folder Include="Models\Admin\" />
+    <Folder Include="Models\Assignments\" />
+    <Folder Include="Models\Calendar\" />
+    <Folder Include="Models\Courses\" />
+    <Folder Include="Models\Dashboard\" />
+    <Folder Include="Models\Messages\" />
+    <Folder Include="Models\Submissions\" />
   </ItemGroup>
 
 </Project>

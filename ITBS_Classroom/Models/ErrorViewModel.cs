@@ -1,9 +1,7 @@
-namespace ITBS_Classroom.Models
-{
-    public class ErrorViewModel
-    {
-        public string? RequestId { get; set; }
+namespace ITBS_Classroom.Models;
 
-        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-    }
+public class ErrorViewModel
+{
+    public string? RequestId { get; set; }
+    public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 }

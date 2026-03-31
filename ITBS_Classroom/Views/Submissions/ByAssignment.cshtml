@@ -1,33 +1,88 @@
-@model IEnumerable<ITBS_Classroom.Domain.Entities.Submission>
-@using System.Globalization
+@model IEnumerable<ITBS_Classroom.Models.Submission>
+@using ITBS_Classroom.Models
+@using ITBS_Classroom.Models.ViewModels
 @{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Soumissions" : "Submissions";
+    ViewData["Title"] = "Rendus";
+    var assignment = ViewBag.Assignment as Assignment;
 }
 
-<h2>@(isFr ? "Soumissions" : "Submissions")</h2>
-<div class="table-responsive app-card p-3 shadow-sm">
-<table class="table align-middle">
-    <thead><tr><th>Étudiant</th><th>Date</th><th>Status</th><th>Note</th><th>Action</th></tr></thead>
-    <tbody>
-    @foreach (var item in Model)
-    {
-        <tr>
-            <td>@item.Student.FirstName @item.Student.LastName</td>
-            <td>@item.SubmittedAtUtc</td>
-            <td>@item.Status</td>
-            <td>@(item.Grade?.Score)</td>
-            <td>
-                <form asp-action="Grade" method="post" class="d-flex gap-2">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="SubmissionId" value="@item.Id" />
-                    <input type="number" name="Score" min="0" max="100" step="0.5" class="form-control form-control-sm" style="max-width:90px" required />
-                    <input type="text" name="Feedback" class="form-control form-control-sm" placeholder="Feedback" />
-                    <button class="btn btn-sm btn-dark" type="submit">Publier</button>
-                </form>
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
+<div class="uc-page-header d-flex justify-between align-center">
+    <div>
+        <h1><i class="fa fa-inbox me-2 text-blue"></i>Rendus — @assignment?.Title</h1>
+        <p>@Model.Count() rendu(s) · Cours: @assignment?.Course?.Title</p>
+    </div>
+    <a class="uc-btn uc-btn-ghost" asp-controller="Courses" asp-action="Detail" asp-route-id="@assignment?.CourseId">
+        <i class="fa fa-arrow-left"></i> Retour
+    </a>
 </div>
+
+@if (!Model.Any())
+{
+    <div class="uc-empty uc-card"><i class="fa fa-inbox"></i><p>Aucun rendu pour ce devoir.</p></div>
+}
+else
+{
+    <div class="uc-card">
+        <table class="uc-table">
+            <thead>
+                <tr>
+                    <th>Etudiant</th>
+                    <th>Fichier</th>
+                    <th>Soumis le</th>
+                    <th>Note /100</th>
+                    <th>Feedback</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sub in Model)
+                {
+                    var grade = sub.Grade?.Score;
+                    var maxScore = assignment?.MaxScore ?? 20;
+                    string gradeClass = grade is null ? "" : grade >= maxScore * .8m ? "uc-grade-A"
+                        : grade >= maxScore * .6m ? "uc-grade-B"
+                        : grade >= maxScore * .4m ? "uc-grade-C" : "uc-grade-F";
+                    <tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <div class="uc-avatar" style="width:32px;height:32px;font-size:.75rem">@sub.Student.Initials</div>
+                                @sub.Student.FullName
+                            </div>
+                        </td>
+                        <td>
+                            <a class="uc-btn uc-btn-outline uc-btn-sm"
+                               asp-controller="Submissions" asp-action="Download" asp-route-submissionId="@sub.Id">
+                                <i class="fa fa-download"></i> @sub.FileName
+                            </a>
+                        </td>
+                        <td class="text-soft">@sub.SubmittedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            @if (grade is not null)
+                            {
+                                <span class="uc-grade-chip @gradeClass">@grade / @maxScore</span>
+                            }
+                            else { <span class="text-soft">—</span> }
+                        </td>
+                        <td class="text-soft" style="max-width:200px;font-size:.82rem">@(sub.Grade?.Feedback ?? "—")</td>
+                        <td>
+                            <form asp-controller="Submissions" asp-action="Grade" method="post"
+                                  style="display:flex;gap:6px;align-items:center">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="SubmissionId" value="@sub.Id" />
+                                <input name="Score" type="number" step="0.5" min="0" max="@maxScore"
+                                       value="@(sub.Grade?.Score ?? 0)"
+                                       class="uc-input" style="width:75px;padding:5px 8px;font-size:.85rem" />
+                                <input name="Feedback" placeholder="Commentaire"
+                                       value="@sub.Grade?.Feedback"
+                                       class="uc-input" style="width:140px;padding:5px 8px;font-size:.85rem" />
+                                <button class="uc-btn uc-btn-primary uc-btn-sm" type="submit">
+                                    <i class="fa fa-check"></i> Noter
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

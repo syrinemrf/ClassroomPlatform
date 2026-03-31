@@ -1,26 +1,49 @@
-@model ITBS_Classroom.Models.Submissions.SubmissionCreateViewModel
-@using System.Globalization
+@model ITBS_Classroom.Models.ViewModels.SubmitAssignmentViewModel
 @{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Soumission" : "Submission";
+    ViewData["Title"] = "Rendre le devoir";
+    var a = ViewBag.Assignment as ITBS_Classroom.Models.Assignment;
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <h4>@(isFr ? "Soumettre le devoir" : "Submit assignment")</h4>
-                <form method="post" enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="All" class="text-danger small"></div>
-                    <input asp-for="AssignmentId" type="hidden" />
-                    <input asp-for="File" type="file" class="form-control mb-3" />
-                    <button class="btn btn-dark w-100" type="submit">Soumettre</button>
-                </form>
+<div class="uc-page-header">
+    <h1><i class="fa fa-upload me-2 text-blue"></i>Rendre le devoir</h1>
+</div>
+
+@if (a is not null)
+{
+    <div class="uc-card mb-3" style="margin-bottom:20px">
+        <div class="uc-card-body">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px">@a.Title</h3>
+            <div class="text-soft" style="font-size:.85rem;margin-bottom:4px">
+                <i class="fa fa-book-open me-1"></i>@a.Course?.Title
+            </div>
+            <div class="text-soft" style="font-size:.85rem;margin-bottom:4px">@a.Description</div>
+            <div style="font-size:.85rem">
+                <i class="fa fa-clock me-1"></i>
+                <strong>Deadline : </strong>@a.DeadlineUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
             </div>
         </div>
     </div>
-</div>
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
 }
+
+<div class="uc-card" style="max-width:500px">
+    <div class="uc-card-body">
+        <div asp-validation-summary="All" class="uc-alert uc-alert-error mb-2"></div>
+        <form asp-action="Submit" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input asp-for="AssignmentId" type="hidden" />
+            <div class="uc-form-group">
+                <label class="uc-label">Fichier à remettre (pdf, doc, ppt, zip)</label>
+                <input asp-for="File" type="file" class="uc-input" required />
+                <span asp-validation-for="File" class="text-red" style="font-size:.8rem"></span>
+            </div>
+            <div style="display:flex;gap:10px">
+                <button class="uc-btn uc-btn-primary" type="submit">
+                    <i class="fa fa-upload"></i> Soumettre
+                </button>
+                <a class="uc-btn uc-btn-ghost" asp-controller="Dashboard" asp-action="Index">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

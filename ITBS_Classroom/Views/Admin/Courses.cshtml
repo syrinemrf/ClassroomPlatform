@@ -1,0 +1,187 @@
+@using ITBS_Classroom.Models
+@using ITBS_Classroom.Models.ViewModels
+@model CreateCourseViewModel
+@{
+    ViewData["Title"] = "Gestion des cours";
+    var courses = ViewBag.Courses as List<Course> ?? new();
+    var teachers = ViewBag.Teachers as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new();
+    var students = ViewBag.Students as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new();
+    var colors = new[] { "#1a73e8","#34a853","#ea4335","#fbbc04","#ff6d00","#9334e6","#00897b","#e91e63","#795548","#607d8b" };
+}
+
+<div class="uc-page-header d-flex justify-between align-center">
+    <div>
+        <h1><i class="fa fa-chalkboard-teacher me-2 text-blue"></i>Cours</h1>
+        <p>@courses.Count cours sur la plateforme</p>
+    </div>
+    <button class="uc-btn uc-btn-primary" id="btnNewCourse">
+        <i class="fa fa-plus"></i> Nouveau cours
+    </button>
+</div>
+
+<!-- CREATE COURSE PANEL -->
+<div class="uc-card mb-3" id="createCoursePanel" style="display:none;margin-bottom:24px">
+    <div class="uc-card-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:1rem;font-weight:700;margin:0">Créer un cours</h3>
+            <button class="uc-btn uc-btn-ghost uc-btn-sm" id="btnCloseNewCourse"><i class="fa fa-times"></i></button>
+        </div>
+        <form asp-action="CreateCourse" method="post">
+            @Html.AntiForgeryToken()
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px">
+                <div class="uc-form-group">
+                    <label class="uc-label">Titre du cours *</label>
+                    <input asp-for="Title" class="uc-input" required />
+                </div>
+                <div class="uc-form-group">
+                    <label class="uc-label">Section / Filiere</label>
+                    <input asp-for="Section" class="uc-input" placeholder="ex: GL-2, BI-3" />
+                </div>
+                <div class="uc-form-group">
+                    <label class="uc-label">Enseignant *</label>
+                    <select asp-for="TeacherId" asp-items="teachers" class="uc-select">
+                        <option value="">— Choisir —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="uc-form-group">
+                <label class="uc-label">Description</label>
+                <input asp-for="Description" class="uc-input" />
+            </div>
+            <div class="uc-form-group">
+                <label class="uc-label">Couleur du cours</label>
+                <div class="uc-color-chips">
+                    @foreach (var c in colors)
+                    {
+                        <div class="uc-color-chip @(c == "#1a73e8" ? "selected" : "")"
+                             data-color="@c" style="background:@c"></div>
+                    }
+                </div>
+                <input type="hidden" asp-for="ColorTheme" id="ColorTheme" value="#1a73e8" />
+            </div>
+            <button class="uc-btn uc-btn-primary" type="submit">
+                <i class="fa fa-save"></i> Créer le cours
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- COURSES LIST -->
+@if (!courses.Any())
+{
+    <div class="uc-empty uc-card"><i class="fa fa-book-open"></i><p>Aucun cours cree.</p></div>
+}
+else
+{
+    <div style="display:flex;flex-direction:column;gap:16px">
+        @foreach (var c in courses)
+        {
+            var enrolled = c.Enrollments.Count;
+            <div class="uc-card">
+                <div class="uc-card-body">
+                    <div style="display:flex;align-items:center;gap:16px">
+                        <!-- Color stripe -->
+                        <div style="width:8px;height:60px;border-radius:4px;background:@c.ColorTheme;flex-shrink:0"></div>
+                        <div style="flex:1">
+                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                                <span style="font-size:1.05rem;font-weight:700">@c.Title</span>
+                                @if (!string.IsNullOrEmpty(c.Section))
+                                {
+                                    <span style="background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:12px;font-size:.78rem;font-weight:600">@c.Section</span>
+                                }
+                            </div>
+                            <div class="text-soft" style="font-size:.85rem;margin-top:2px">
+                                <i class="fa fa-chalkboard-teacher me-1"></i>@c.Teacher.FullName
+                                &nbsp;·&nbsp;<i class="fa fa-users me-1"></i>@enrolled etudiant(s)
+                            </div>
+                        </div>
+                        <!-- Actions -->
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                            <!-- Enroll student -->
+                            <form asp-action="EnrollStudent" method="post" style="display:flex;gap:6px;align-items:center">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="courseId" value="@c.Id" />
+                                <select name="studentId" class="uc-select" style="width:200px;padding:6px 10px;font-size:.82rem">
+                                    <option value="">Inscrire un etudiant…</option>
+                                    @foreach (var s in students)
+                                    {
+                                        var alreadyIn = c.Enrollments.Any(e => e.StudentId == s.Value);
+                                        if (!alreadyIn)
+                                        {
+                                            <option value="@s.Value">@s.Text</option>
+                                        }
+                                    }
+                                </select>
+                                <button class="uc-btn uc-btn-green uc-btn-sm" type="submit">
+                                    <i class="fa fa-user-plus"></i>
+                                </button>
+                            </form>
+                            <!-- Change teacher -->
+                            <form asp-action="AssignTeacher" method="post" style="display:flex;gap:6px;align-items:center">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="courseId" value="@c.Id" />
+                                <select name="teacherId" class="uc-select" style="width:180px;padding:6px 10px;font-size:.82rem">
+                                    @foreach (var t2 in teachers)
+                                    {
+                                        if (t2.Value == c.TeacherId)
+                                        { <option value="@t2.Value" selected>@t2.Text</option> }
+                                        else
+                                        { <option value="@t2.Value">@t2.Text</option> }
+                                    }
+                                </select>
+                                <button class="uc-btn uc-btn-outline uc-btn-sm" type="submit" title="Changer d'enseignant">
+                                    <i class="fa fa-user-tie"></i>
+                                </button>
+                            </form>
+                            <!-- Delete course -->
+                            <form asp-action="DeleteCourse" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="courseId" value="@c.Id" />
+                                <button class="uc-btn uc-btn-danger uc-btn-sm" type="submit"
+                                        onclick="return confirm('Supprimer le cours @c.Title ?')">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- Enrolled students chips -->
+                    @if (c.Enrollments.Any())
+                    {
+                        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #dadce0">
+                            @foreach (var en in c.Enrollments)
+                            {
+                                <span class="uc-student-chip">
+                                    <div class="uc-avatar" style="width:24px;height:24px;font-size:.65rem;background:#1a73e8">
+                                        @en.Student.Initials
+                                    </div>
+                                    @en.Student.FullName
+                                    <form asp-action="UnenrollStudent" method="post" style="margin:0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="courseId" value="@c.Id" />
+                                        <input type="hidden" name="studentId" value="@en.StudentId" />
+                                        <button type="submit" style="background:none;border:none;cursor:pointer;color:#5f6368;padding:0;font-size:.75rem" title="Desinscrire">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </form>
+                                </span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+<script>
+document.getElementById('btnNewCourse').addEventListener('click', function() {
+    document.getElementById('createCoursePanel').style.display = 'block';
+    this.style.display = 'none';
+});
+document.getElementById('btnCloseNewCourse').addEventListener('click', function() {
+    document.getElementById('createCoursePanel').style.display = 'none';
+    document.getElementById('btnNewCourse').style.display = 'inline-flex';
+});
+</script>
+}

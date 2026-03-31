@@ -1,20 +1,44 @@
-@model IEnumerable<ITBS_Classroom.Domain.Entities.MessageThread>
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Messages" : "Messages";
-}
+@model IEnumerable<ITBS_Classroom.Models.MessageThread>
+@{ ViewData["Title"] = "Messages"; var userId = ViewBag.UserId as string; }
 
-<h2>@(isFr ? "Messagerie" : "Messaging")</h2>
-<div class="list-group shadow-sm app-card p-2">
-@foreach (var t in Model)
-{
-    <a class="list-group-item list-group-item-action" asp-action="Thread" asp-route-id="@t.Id">
-        <div class="d-flex justify-content-between">
-            <strong>Thread @t.ThreadType</strong>
-            <small>@t.CreatedAtUtc</small>
-        </div>
-        <small>@t.Messages.FirstOrDefault()?.Content</small>
-    </a>
-}
+<div class="uc-page-header">
+    <h1><i class="fa fa-comments me-2 text-blue"></i>Messages</h1>
+    <p>@Model.Count() conversation(s)</p>
 </div>
+
+@if (!Model.Any())
+{
+    <div class="uc-empty uc-card"><i class="fa fa-comments"></i><p>Aucune conversation.</p></div>
+}
+else
+{
+    <div class="uc-card">
+        <div class="uc-thread-list">
+            @foreach (var t in Model)
+            {
+                var other = t.Participants.FirstOrDefault(p => p.UserId != userId)?.User;
+                var lastMsg = t.Messages.MaxBy(m => m.SentAtUtc);
+                <a class="uc-thread-item" asp-controller="Messages" asp-action="Thread" asp-route-id="@t.Id">
+                    <div class="uc-avatar">@(other?.Initials ?? "?")</div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-weight:600;font-size:.9rem">
+                            @(other?.FullName ?? (t.Course?.Title ?? "Discussion"))
+                        </div>
+                        @if (lastMsg is not null)
+                        {
+                            <div class="text-soft" style="font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                @lastMsg.Content.Substring(0, Math.Min(60, lastMsg.Content.Length))
+                            </div>
+                        }
+                    </div>
+                    @if (lastMsg is not null)
+                    {
+                        <div class="text-soft" style="font-size:.75rem;flex-shrink:0">
+                            @lastMsg.SentAtUtc.ToLocalTime().ToString("dd/MM HH:mm")
+                        </div>
+                    }
+                </a>
+            }
+        </div>
+    </div>
+}

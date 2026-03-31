@@ -1,11 +1,83 @@
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Espace étudiant" : "Student area";
-}
-<div class="card app-card border-0 shadow-sm">
-    <div class="card-body">
-        <h3>@(isFr ? "Bienvenue étudiant" : "Welcome student")</h3>
-        <p>@(isFr ? "Consultez vos cours, devoirs, notes et notifications." : "View your courses, assignments, grades, and notifications.")</p>
+@model ITBS_Classroom.Models.ViewModels.StudentDashboardViewModel
+@{ ViewData["Title"] = "Accueil Etudiant"; }
+
+<div class="uc-page-header">
+    <h1>Bonjour, @User.Identity?.Name?.Split('@')[0] ??</h1>
+    <p>Consultez vos cours, devoirs et notes</p>
+</div>
+
+<div class="uc-stats">
+    <div class="uc-stat">
+        <div class="uc-stat-num">@Model.Courses.Count</div>
+        <div class="uc-stat-label">Cours inscrits</div>
+    </div>
+    <div class="uc-stat">
+        <div class="uc-stat-num" style="color:#ea4335">@Model.PendingAssignments</div>
+        <div class="uc-stat-label">Devoirs en attente</div>
+    </div>
+    <div class="uc-stat">
+        <div class="uc-stat-num" style="color:#34a853">@Model.CompletedSubmissions</div>
+        <div class="uc-stat-label">Rendus</div>
     </div>
 </div>
+
+@if (Model.UpcomingDeadlines.Count > 0)
+{
+    <div class="uc-card mb-3" style="margin-bottom:24px">
+        <div class="uc-card-body">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px">
+                <i class="fa fa-clock me-2 text-red"></i>Deadlines proches
+            </h3>
+            @foreach (var a in Model.UpcomingDeadlines)
+            {
+                var days = (a.DeadlineUtc - DateTime.UtcNow).TotalDays;
+                var cls = days < 1 ? "uc-deadline-urgent" : days < 3 ? "uc-deadline-soon" : "uc-deadline-ok";
+                <div class="d-flex justify-between align-center" style="padding:8px 0;border-bottom:1px solid #dadce0">
+                    <div>
+                        <div style="font-weight:600;font-size:.9rem">@a.Title</div>
+                        <div class="text-soft" style="font-size:.8rem">@a.Course?.Title</div>
+                    </div>
+                    <span class="uc-deadline @cls">
+                        @(days < 1 ? "Aujourd'hui" : days < 2 ? "Demain" : $"Dans {(int)days}j")
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (Model.Courses.Count == 0)
+{
+    <div class="uc-empty uc-card">
+        <i class="fa fa-book-open"></i>
+        <p>Vous n'etes inscrit dans aucun cours.</p>
+        <p class="text-soft" style="font-size:.85rem">Contactez l'administrateur pour vous inscrire.</p>
+    </div>
+}
+else
+{
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px">Mes cours</h2>
+    <div class="uc-courses-grid">
+        @foreach (var course in Model.Courses)
+        {
+            <a class="uc-course-card" asp-controller="Courses" asp-action="Detail" asp-route-id="@course.Id"
+               style="text-decoration:none;color:inherit">
+                <div class="uc-course-header" style="background:@course.ColorTheme" data-initials="@course.Title[0]">
+                    <h3 class="uc-course-title">@course.Title</h3>
+                    @if (!string.IsNullOrEmpty(course.Section))
+                    { <div class="uc-course-section">@course.Section</div> }
+                    <div class="uc-course-teacher-bubble">@course.Teacher.Initials</div>
+                </div>
+                <div class="uc-course-body">
+                    <div class="uc-course-teacher">@course.Teacher.FullName</div>
+                    <div class="uc-course-meta">
+                        <i class="fa fa-tasks me-1"></i>@course.Assignments.Count devoirs
+                    </div>
+                </div>
+                <div class="uc-course-footer">
+                    <button class="uc-course-action" title="Voir le cours"><i class="fa fa-arrow-right"></i></button>
+                </div>
+            </a>
+        }
+    </div>
+}

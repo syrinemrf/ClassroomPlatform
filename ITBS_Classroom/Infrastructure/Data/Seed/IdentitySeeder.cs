@@ -1,5 +1,4 @@
-using ITBS_Classroom.Domain.Entities;
-using ITBS_Classroom.Domain.Enums;
+using ITBS_Classroom.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace ITBS_Classroom.Infrastructure.Data.Seed;

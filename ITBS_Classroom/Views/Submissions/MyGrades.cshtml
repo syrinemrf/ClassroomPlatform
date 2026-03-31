@@ -1,24 +1,66 @@
-@model IEnumerable<ITBS_Classroom.Domain.Entities.Submission>
-@using System.Globalization
-@{
-    var isFr = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
-    ViewData["Title"] = isFr ? "Mes notes" : "My grades";
-}
+@model IEnumerable<ITBS_Classroom.Models.Submission>
+@{ ViewData["Title"] = "Mes notes"; }
 
-<h2>@(isFr ? "Mes notes" : "My grades")</h2>
-<div class="table-responsive app-card p-3 shadow-sm">
-<table class="table align-middle">
-    <thead><tr><th>Devoir</th><th>Date soumission</th><th>Note</th><th>Feedback</th></tr></thead>
-    <tbody>
-    @foreach (var item in Model)
-    {
-        <tr>
-            <td>@item.Assignment.Title</td>
-            <td>@item.SubmittedAtUtc</td>
-            <td>@(item.Grade?.Score)</td>
-            <td>@item.Grade?.Feedback</td>
-        </tr>
-    }
-    </tbody>
-</table>
+<div class="uc-page-header">
+    <h1><i class="fa fa-chart-bar me-2 text-blue"></i>Mes notes</h1>
+    <p>@Model.Count() devoir(s) soumis</p>
 </div>
+
+@if (!Model.Any())
+{
+    <div class="uc-empty uc-card"><i class="fa fa-chart-bar"></i><p>Aucun devoir soumis pour le moment.</p></div>
+}
+else
+{
+    var graded = Model.Count(s => s.Grade is not null);
+    var avgScore = graded > 0 ? Model.Where(s => s.Grade is not null).Average(s => s.Grade!.Score) : 0;
+    <div class="uc-stats" style="margin-bottom:24px">
+        <div class="uc-stat">
+            <div class="uc-stat-num">@Model.Count()</div>
+            <div class="uc-stat-label">Rendus</div>
+        </div>
+        <div class="uc-stat">
+            <div class="uc-stat-num" style="color:#34a853">@graded</div>
+            <div class="uc-stat-label">Notes</div>
+        </div>
+        <div class="uc-stat">
+            <div class="uc-stat-num" style="color:#1a73e8">@avgScore.ToString("0.0")</div>
+            <div class="uc-stat-label">Moyenne</div>
+        </div>
+    </div>
+
+    <div class="uc-card">
+        <table class="uc-table">
+            <thead>
+                <tr>
+                    <th>Cours</th>
+                    <th>Devoir</th>
+                    <th>Soumis le</th>
+                    <th>Note</th>
+                    <th>Feedback</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sub in Model.OrderByDescending(s => s.SubmittedAtUtc))
+                {
+                    var g = sub.Grade;
+                    var max = sub.Assignment?.MaxScore ?? 20;
+                    string cls = g is null ? "" : g.Score >= max * .8m ? "uc-grade-A"
+                        : g.Score >= max * .6m ? "uc-grade-B"
+                        : g.Score >= max * .4m ? "uc-grade-C" : "uc-grade-F";
+                    <tr>
+                        <td style="font-weight:600">@sub.Assignment?.Course?.Title</td>
+                        <td>@sub.Assignment?.Title</td>
+                        <td class="text-soft">@sub.SubmittedAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @if (g is not null)
+                            { <span class="uc-grade-chip @cls">@g.Score / @max</span> }
+                            else { <span class="text-soft" style="font-size:.82rem">En attente</span> }
+                        </td>
+                        <td class="text-soft" style="font-size:.85rem;max-width:240px">@(g?.Feedback ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
