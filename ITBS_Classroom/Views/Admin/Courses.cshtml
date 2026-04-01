@@ -54,10 +54,10 @@
             <div class="uc-form-group">
                 <label class="uc-label">Couleur du cours</label>
                 <div class="uc-color-chips" id="colorChips">
-                    @foreach (var c in colors)
+                    @foreach (var color in colors)
                     {
-                        <div class="uc-color-chip @(c == "#1a73e8" ? "selected" : "")"
-                             data-color="@c" style="background:@c;cursor:pointer" onclick="selectColor('@c')"></div>
+                        <div class="uc-color-chip @(color == "#1a73e8" ? "selected" : "")"
+                             data-color="@color" style="background:@color;cursor:pointer" onclick="selectColor('@color')"></div>
                     }
                 </div>
                 <input type="hidden" name="ColorTheme" id="ColorTheme" value="#1a73e8" />
@@ -79,7 +79,7 @@ else
     <div style="display:flex;flex-direction:column;gap:16px">
         @foreach (var c in courses)
         {
-            var enrolled = c.Enrollments.Count;
+            var enrolled = c.Enrollments?.Count ?? 0;
             <div class="uc-card">
                 <div class="uc-card-body">
                     <div style="display:flex;align-items:center;gap:16px">
@@ -94,7 +94,7 @@ else
                                 }
                             </div>
                             <div class="text-soft" style="font-size:.85rem;margin-top:2px">
-                                <i class="fa fa-chalkboard-teacher me-1"></i>@c.Teacher.FullName
+                                <i class="fa fa-chalkboard-teacher me-1"></i>@(c.Teacher?.FullName ?? "N/A")
                                 &nbsp;·&nbsp;<i class="fa fa-users me-1"></i>@enrolled etudiant(s)
                             </div>
                         </div>
@@ -108,7 +108,7 @@ else
                                     <option value="">Inscrire un etudiant…</option>
                                     @foreach (var s in students)
                                     {
-                                        var alreadyIn = c.Enrollments.Any(e => e.StudentId == s.Value);
+                                        var alreadyIn = c.Enrollments?.Any(e => e.StudentId == s.Value) ?? false;
                                         if (!alreadyIn)
                                         {
                                             <option value="@s.Value">@s.Text</option>
@@ -152,7 +152,7 @@ else
                         </div>
                     </div>
                     <!-- Enrolled students chips -->
-                    @if (c.Enrollments.Any())
+                    @if (c.Enrollments?.Any() ?? false)
                     {
                         <div style="margin-top:10px;padding-top:10px;border-top:1px solid #dadce0">
                             @foreach (var en in c.Enrollments)
